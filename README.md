@@ -1,100 +1,199 @@
-# iMOPS
+# iMOPS – In-Memory Operating Production System
 
-**In-Memory Operating Production System**
+A lightweight, deterministic production kernel for high-stress operational environments.
 
-Ein iOS-Kernel für Produktionsumgebungen. Gebaut für Küchen, nutzbar überall wo Menschen unter Druck arbeiten.
+Originally designed for professional kitchens.
+Works everywhere humans operate under pressure.
+
+Built from 36 years of real-world production experience.
 
 ---
 
-## Was ist das?
+## Philosophy
 
-iMOPS ist ein In-Memory-Datensystem, inspiriert von MUMPS - der Sprache die seit 50 Jahren Krankenhäuser und Banken am Laufen hält. Nur eben für iOS. Und für normale Menschen lesbar.
+Most software is built for offices.
+
+Production environments are different:
+
+- time critical
+- noisy
+- interrupted constantly
+- gloves on, hands wet
+- no patience for menus
+- no tolerance for crashes
+
+iMOPS does not try to be "feature rich".
+
+It tries to be:
+
+- fast
+- predictable
+- offline
+- robust
+- cognitively minimal
+
+**Less UI. More system.**
+
+---
+
+## Core Idea
+
+Instead of databases, ORMs, sync layers and network dependencies,
+iMOPS uses a simple **in-memory kernel** inspired by classic systems like MUMPS:
+
+`SET / GET / KILL`
+
+Everything is:
+
+- deterministic
+- hierarchical
+- instantly accessible
+- offline-first
+
+Think: Redis mindset + HACCP logic + production reality — inside a native iOS app.
+
+---
+
+## What problems does it solve?
+
+In real production:
+
+- tasks get lost
+- documentation is forgotten
+- HACCP logs are incomplete
+- overload causes errors
+- people improvise instead of following process
+
+iMOPS provides:
+
+- structured tasks
+- immutable completion logs
+- traceable responsibility
+- simple state machine
+- stress/load visibility
+- zero network dependency
+
+**Goal: Make correct behavior the easiest behavior.**
+
+---
+
+## Features
+
+- In-memory kernel (no CoreData / SQL required)
+- Deterministic SET / GET data model
+- Offline-first architecture
+- Immutable HACCP archive ("Tresor")
+- Timestamped audit trail
+- Responsibility tracking
+- Pelczer Matrix workload scoring
+- Minimal UI layer
+- Open Source (MIT)
+
+---
+
+## Architecture Overview
+
+Kernel structure:
+
+- `TheBrain.swift` → memory engine (SET / GET / KILL)
+- `Syntax.swift` → hierarchical key logic
+- `TaskRepository.swift` → task abstraction
+- `HACCPVault.swift` → immutable archive
+- `PelczerMatrix.swift` → workload calculation
+- `TerminalViews.swift` → minimal UI
+
+Flow:
+
+```
+User Input → Kernel → Task State → Archive (sealed) → Metrics
+```
+
+No backend required. No cloud required. System continues working even without internet.
+
+---
+
+## Example
 
 ```swift
-// So einfach ist das
-iMOPS.SET(.task("001", "TITLE"), "Matjes wässern")
-iMOPS.SET(.task("001", "STATUS"), "OPEN")
+brain.set("task.42.title", "Cool soup")
+brain.set("task.42.status", "inProgress")
 
-let title: String? = iMOPS.GET(.task("001", "TITLE"))
+let title = brain.get("task.42.title")
 ```
 
-Kein CoreData. Kein SQL. Kein Backend. Alles im RAM, alles sofort.
+Direct. Predictable. No hidden layers.
 
 ---
 
-## Warum?
+## HACCP Vault (Immutable Archive)
 
-Ich hab 30 Jahre in Profiküchen gearbeitet. Die Software dort ist Müll. Entweder zu langsam, zu kompliziert, oder offline nicht nutzbar.
+When a task is completed, it is:
 
-iMOPS ist das Gegenteil:
-- **Schnell** - Nanosekunden, nicht Millisekunden
-- **Offline** - Funktioniert im Keller ohne Netz
-- **Einfach** - SET, GET, KILL. Mehr brauchst du nicht.
+- timestamped
+- assigned to a responsible person
+- archived
+- locked
 
----
+This creates traceability, audit safety, legal defensibility, and inspection readiness.
 
-## Die Pelczer-Matrix
-
-Das System misst kognitive Belastung in Echtzeit. Nicht weil Big Brother cool ist, sondern weil müde Menschen Fehler machen.
-
-```
-Score 0-40:   Grün.  Alles gut.
-Score 40-70:  Orange. Aufpassen.
-Score 70+:    Rot.   Jemand braucht Pause.
-```
-
-Der Score basiert auf: offene Aufgaben × Gewicht × Zeit. Je länger was offen ist, desto schwerer wiegt es. Wie im echten Leben.
+Data is not edited retroactively. History remains history.
 
 ---
 
-## Architektur
+## Pelczer Matrix (Workload Score)
 
-```
-iMOPS_OS_CORE/
-├── Kernel/
-│   ├── TheBrain.swift       # Der Kern. In-Memory-Store + Matrix.
-│   ├── Syntax.swift         # DSL für typsichere Pfade
-│   ├── TaskRepository.swift # HACCP-Logik für Archivierung
-│   └── ...
-└── TerminalViews/
-    ├── HomeMenuView.swift   # Hauptmenü
-    ├── CommanderView.swift  # Archiv-Einsicht (HACCP-Tresor)
-    └── StaffGridView.swift  # Zero-Waste-Modul
-```
+Production errors rarely come from bad intentions. They come from overload.
 
-**TheBrain** ist der Kernel. Ein Thread-sicherer Dictionary mit reaktiver UI-Anbindung. Jede Änderung triggert die Matrix-Berechnung.
+The matrix estimates stress level based on:
 
-**Namespaces:**
-- `^TASK.*` - Aktive Aufgaben
-- `^ARCHIVE.*` - Versiegelte Einträge (HACCP-konform, unveränderbar)
-- `^BRIGADE.*` - Personal
-- `^NAV.*` - Navigation
-- `^SYS.*` - Systemstatus
+- active tasks
+- interruptions
+- task complexity
+- concurrency
+
+Result: A simple score that indicates risk of failure.
+
+**Purpose: Prevent collapse before it happens.**
 
 ---
 
-## HACCP-Tresor
+## Scientific / Validation Context
 
-Wenn eine Aufgabe erledigt wird, wandert sie ins Archiv. Mit Zeitstempel, wer es gemacht hat, welche Allergene relevant waren. Unveränderbar. Revisionssicher.
+iMOPS is designed as a **systemic intervention tool**, not just task software.
 
-Das ist keine Überwachung. Das ist Schutz - für den Mitarbeiter der beweisen kann dass er alles richtig gemacht hat.
+It enables measurable evaluation of:
+
+- task completion time
+- error rates
+- documentation completeness
+- workload vs. mistakes
+- compliance stability
+- operator stress indicators
+
+Possible study designs:
+
+- before/after comparison
+- pilot kitchen vs. control group
+- HACCP documentation quality analysis
+- workload correlation studies
+
+The kernel is intentionally simple and transparent to support reproducibility and research.
 
 ---
 
-## Bau was du willst
+## What iMOPS is NOT
 
-iMOPS ist MIT-lizenziert. Nimm es, fork es, verkauf es. Mir egal.
+- not employee surveillance
+- not behavior scoring
+- not cloud analytics
+- not a management spying tool
+- not an ERP
 
-**Ideen:**
-- Wattwanderer-App (Gezeiten + GPS + Sicherheit)
-- Lager-Verwaltung
-- Event-Catering-Steuerung
-- Krankenhaus-Logistik
-- Alles wo Menschen unter Zeitdruck Dinge abarbeiten
+It is a **local operational aid**. It supports people. It does not monitor them.
 
 ---
 
-## Anforderungen
+## Requirements
 
 - iOS 17+
 - Xcode 15+
@@ -110,27 +209,60 @@ cd iMOPS_OS_CORE
 open iMOPS_OS_CORE.xcodeproj
 ```
 
-Fertig. Keine Pods, keine Packages, keine Dependencies.
+No server setup required. No pods, no packages, no dependencies.
 
 ---
 
-## Philosophie
+## Use Cases
 
-> "Die Suppe lügt nicht."
+Originally built for:
 
-Code auch nicht. Dieses System zeigt was ist, nicht was sein sollte. Es misst echte Belastung, speichert echte Aktionen, und funktioniert wenn alles andere versagt.
+- professional kitchens
+- food production
+- HACCP environments
 
-Gebaut für die Leute die den Laden am Laufen halten. Nicht für die die davon reden.
+Also suitable for:
+
+- labs
+- workshops
+- small manufacturing
+- field operations
+- anywhere offline reliability matters
 
 ---
 
-## Autor
+## Design Principles
+
+- offline first
+- deterministic behavior
+- low cognitive load
+- minimal dependencies
+- transparent logic
+- small codebase
+- understandable by humans
+
+If you need a manual, it's already too complex.
+
+---
+
+## License
+
+MIT
+
+Use it. Fork it. Build your own system on top.
+
+---
+
+## Author
 
 **Andreas Pelczer**
-30 Jahre Küche. Jetzt Code.
+System Architect · Production Systems Specialist · Author
+
+36 years of professional kitchen and production management experience.
+Published: *Thermodynamik der Arbeit – Warum Systeme kollabieren und was wir dagegen tun können* (2025).
+Founder of Dead Rabbit Productions.
+
+Currently exploring academic validation of the Pelczer Matrix methodology
+in collaboration with the University of Applied Sciences Münster (FH Münster).
 
 [GitHub](https://github.com/AndreasPelczer)
-
----
-
-*Keine Macht für niemand. Wissen für alle.*
