@@ -273,7 +273,6 @@ System Architect · Production Systems Specialist · Author
 Published: *Thermodynamik der Arbeit – Warum Systeme kollabieren* (2025).
 Founder of Dead Rabbit Productions.
 
-Currently exploring academic validation of the JOSHUA-Matrix methodology
-in collaboration with the University of Applied Sciences Münster (FH Münster).
+Open to academic validation partnerships.
 
 [GitHub](https://github.com/AndreasPelczer)
