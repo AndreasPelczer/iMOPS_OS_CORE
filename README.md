@@ -273,6 +273,6 @@ System Architect · Production Systems Specialist · Author
 Published: *Thermodynamik der Arbeit – Warum Systeme kollabieren* (2025).
 Founder of Dead Rabbit Productions.
 
-Open to academic validation partnerships.
+Interested in academic collaboration for methodology validation.
 
 [GitHub](https://github.com/AndreasPelczer)
