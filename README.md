@@ -259,7 +259,7 @@ Use it. Fork it. Build your own system on top.
 System Architect · Production Systems Specialist · Author
 
 36 years of professional kitchen and production management experience.
-Published: *Thermodynamik der Arbeit – Warum Systeme kollabieren und was wir dagegen tun können* (2025).
+Published: *Thermodynamik der Arbeit – Warum Systeme kollabieren* (2025).
 Founder of Dead Rabbit Productions.
 
 Currently exploring academic validation of the Pelczer Matrix methodology
