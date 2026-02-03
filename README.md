@@ -85,7 +85,7 @@ iMOPS provides:
 - Immutable HACCP archive ("Tresor")
 - Timestamped audit trail
 - Responsibility tracking
-- Pelczer Matrix workload scoring
+- JOSHUA-Matrix workload scoring
 - Minimal UI layer
 - Open Source (MIT)
 
@@ -245,6 +245,17 @@ If you need a manual, it's already too complex.
 
 ---
 
+## The Book
+
+> **Thermodynamik der Arbeit – Warum Systeme kollabieren**
+> *(Thermodynamics of Work – Why Systems Collapse)*
+
+The theoretical foundation behind iMOPS. No motivation, no morals – just structure.
+
+[Available on Amazon](https://www.amazon.de/dp/B0GK95MWB5)
+
+---
+
 ## License
 
 MIT
@@ -262,7 +273,7 @@ System Architect · Production Systems Specialist · Author
 Published: *Thermodynamik der Arbeit – Warum Systeme kollabieren* (2025).
 Founder of Dead Rabbit Productions.
 
-Currently exploring academic validation of the Pelczer Matrix methodology
+Currently exploring academic validation of the JOSHUA-Matrix methodology
 in collaboration with the University of Applied Sciences Münster (FH Münster).
 
 [GitHub](https://github.com/AndreasPelczer)
