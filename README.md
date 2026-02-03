@@ -99,7 +99,7 @@ Kernel structure:
 - `Syntax.swift` → hierarchical key logic
 - `TaskRepository.swift` → task abstraction
 - `HACCPVault.swift` → immutable archive
-- `PelczerMatrix.swift` → workload calculation
+- `JOSHUA-Matrix.swift` → workload calculation
 - `TerminalViews.swift` → minimal UI
 
 Flow:
@@ -140,7 +140,7 @@ Data is not edited retroactively. History remains history.
 
 ---
 
-## Pelczer Matrix (Workload Score)
+## JOSHUA-Matrix (Workload Score)
 
 Production errors rarely come from bad intentions. They come from overload.
 
