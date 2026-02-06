@@ -1,0 +1,796 @@
+diff --git a/css/components/sentinel.css b/css/components/sentinel.css
+new file mode 100644
+index 0000000..53e2421
+--- /dev/null
++++ b/css/components/sentinel.css
+@@ -0,0 +1,151 @@
++/* ===========================================
++   SENTINEL COMPONENT
++   iMOPS Floating Logo - Fixed Right Side
++   =========================================== */
++
++/* --- SENTINEL CONTAINER --- */
++.sentinel {
++  position: fixed;
++  right: 24px;
++  top: 50%;
++  transform: translateY(-50%);
++  z-index: var(--z-overlay);
++  display: flex;
++  flex-direction: column;
++  align-items: center;
++  gap: 8px;
++  text-decoration: none;
++  cursor: pointer;
++
++  /* Smooth entry */
++  opacity: 0;
++  animation: sentinel-enter 1s var(--ease-out-expo) 2s forwards;
++}
++
++@keyframes sentinel-enter {
++  from {
++    opacity: 0;
++    transform: translateY(-50%) translateX(20px);
++  }
++  to {
++    opacity: 1;
++    transform: translateY(-50%) translateX(0);
++  }
++}
++
++/* --- LOGO SVG --- */
++.sentinel__logo {
++  width: 36px;
++  height: 36px;
++  opacity: 0.15;
++  transition:
++    opacity var(--duration-slow) var(--ease-out-expo),
++    filter var(--duration-slow) var(--ease-out-expo),
++    transform var(--duration-slow) var(--ease-out-expo);
++  filter: drop-shadow(0 0 0px transparent);
++
++  /* Subtle breathing */
++  animation: sentinel-breathe 4s ease-in-out infinite;
++}
++
++@keyframes sentinel-breathe {
++  0%, 100% {
++    opacity: 0.15;
++    filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0));
++  }
++  50% {
++    opacity: 0.22;
++    filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.1));
++  }
++}
++
++/* Hover: Glow up */
++.sentinel:hover .sentinel__logo {
++  opacity: 0.6;
++  filter: drop-shadow(0 0 20px rgba(255, 107, 53, 0.4));
++  animation: none;
++}
++
++/* --- LABEL (Hidden until hover) --- */
++.sentinel__label {
++  font-family: var(--font-mono);
++  font-size: 0.5rem;
++  letter-spacing: 2px;
++  color: var(--color-accent);
++  opacity: 0;
++  transform: translateY(-4px);
++  transition:
++    opacity var(--duration-normal) var(--ease-out-expo),
++    transform var(--duration-normal) var(--ease-out-expo);
++  white-space: nowrap;
++}
++
++.sentinel:hover .sentinel__label {
++  opacity: 0.7;
++  transform: translateY(0);
++}
++
++/* --- GLOW BURST (When software section is in view) --- */
++.sentinel--active .sentinel__logo {
++  opacity: 0.45;
++  filter: drop-shadow(0 0 24px rgba(255, 107, 53, 0.35));
++  animation: sentinel-burst 0.8s var(--ease-out-expo) forwards, sentinel-breathe-active 4s ease-in-out 0.8s infinite;
++}
++
++@keyframes sentinel-burst {
++  0% {
++    opacity: 0.15;
++    filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0));
++  }
++  40% {
++    opacity: 0.7;
++    filter: drop-shadow(0 0 40px rgba(255, 107, 53, 0.5));
++  }
++  100% {
++    opacity: 0.45;
++    filter: drop-shadow(0 0 24px rgba(255, 107, 53, 0.35));
++  }
++}
++
++@keyframes sentinel-breathe-active {
++  0%, 100% {
++    opacity: 0.4;
++    filter: drop-shadow(0 0 20px rgba(255, 107, 53, 0.3));
++  }
++  50% {
++    opacity: 0.5;
++    filter: drop-shadow(0 0 28px rgba(255, 107, 53, 0.4));
++  }
++}
++
++/* --- RESPONSIVE --- */
++@media (max-width: 768px) {
++  /* Mobile: Badge in bottom-right corner */
++  .sentinel {
++    top: auto;
++    bottom: 20px;
++    right: 16px;
++    transform: none;
++    animation: sentinel-enter-mobile 1s var(--ease-out-expo) 2s forwards;
++  }
++
++  @keyframes sentinel-enter-mobile {
++    from {
++      opacity: 0;
++      transform: translateY(20px);
++    }
++    to {
++      opacity: 1;
++      transform: translateY(0);
++    }
++  }
++
++  .sentinel__logo {
++    width: 28px;
++    height: 28px;
++  }
++
++  .sentinel__label {
++    display: none;
++  }
++}
+diff --git a/css/main.css b/css/main.css
+index 24e4167..d0f2159 100644
+--- a/css/main.css
++++ b/css/main.css
+@@ -17,3 +17,4 @@
+ @import 'components/sections.css';
+ @import 'components/footer.css';
+ @import 'components/ambient.css';
++@import 'components/sentinel.css';
+diff --git a/imops.html b/imops.html
+new file mode 100644
+index 0000000..8ed17f8
+--- /dev/null
++++ b/imops.html
+@@ -0,0 +1,547 @@
++<!DOCTYPE html>
++<html lang="de">
++<head>
++  <meta charset="UTF-8">
++  <meta name="viewport" content="width=device-width, initial-scale=1.0">
++  <title>iMOPS — In-Memory Operating Production System</title>
++  <meta name="description" content="iMOPS: Deterministisches Betriebssystem für operative Steuerung unter Hochlast. Offline, HACCP-konform, MUMPS-inspiriert.">
++
++  <!-- Fonts -->
++  <link rel="preconnect" href="https://fonts.googleapis.com">
++  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
++  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,700;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
++
++  <!-- Styles -->
++  <link rel="stylesheet" href="css/main.css">
++
++  <style>
++    /* ── iMOPS PAGE ── */
++
++    .imops-hero {
++      padding: var(--space-4xl) var(--container-padding) var(--space-3xl);
++      text-align: center;
++      position: relative;
++      overflow: hidden;
++    }
++
++    .imops-hero::before {
++      content: '';
++      position: absolute;
++      top: -40%;
++      left: 50%;
++      transform: translateX(-50%);
++      width: 600px;
++      height: 600px;
++      background: radial-gradient(circle, rgba(255,107,53,0.06) 0%, transparent 70%);
++      pointer-events: none;
++    }
++
++    .imops-hero__logo {
++      width: 80px;
++      height: 80px;
++      margin: 0 auto var(--space-lg);
++      opacity: 0;
++      animation: imops-logo-enter 1s var(--ease-out-expo) 0.3s forwards;
++      filter: drop-shadow(0 0 30px rgba(255, 107, 53, 0.3));
++    }
++
++    @keyframes imops-logo-enter {
++      from {
++        opacity: 0;
++        transform: scale(0.8) translateY(10px);
++      }
++      to {
++        opacity: 1;
++        transform: scale(1) translateY(0);
++      }
++    }
++
++    .imops-hero__title {
++      font-family: var(--font-mono);
++      font-size: 2.5rem;
++      font-weight: 700;
++      letter-spacing: 0.2em;
++      color: var(--color-text-white);
++      margin: 0;
++      opacity: 0;
++      animation: imops-fade-up 0.8s var(--ease-out-expo) 0.5s forwards;
++    }
++
++    .imops-hero__tagline {
++      font-family: var(--font-mono);
++      font-size: 0.7rem;
++      letter-spacing: 0.2em;
++      color: var(--color-accent);
++      margin-top: var(--space-sm);
++      opacity: 0;
++      animation: imops-fade-up 0.8s var(--ease-out-expo) 0.7s forwards;
++    }
++
++    .imops-hero__version {
++      font-family: var(--font-mono);
++      font-size: 0.6rem;
++      color: var(--color-text-muted);
++      margin-top: var(--space-xs);
++      opacity: 0;
++      animation: imops-fade-up 0.8s var(--ease-out-expo) 0.9s forwards;
++    }
++
++    @keyframes imops-fade-up {
++      from {
++        opacity: 0;
++        transform: translateY(12px);
++      }
++      to {
++        opacity: 1;
++        transform: translateY(0);
++      }
++    }
++
++    /* ── CONTENT ── */
++
++    .imops-content {
++      max-width: var(--container-width);
++      margin: 0 auto;
++      padding: 0 var(--container-padding);
++    }
++
++    .imops-section {
++      padding: var(--space-2xl) 0;
++      border-top: 1px solid var(--color-border);
++    }
++
++    .imops-section__header {
++      font-family: var(--font-mono);
++      font-size: 0.7rem;
++      font-weight: 700;
++      color: var(--color-accent);
++      letter-spacing: 0.15em;
++      margin-bottom: var(--space-lg);
++      display: flex;
++      align-items: center;
++      gap: var(--space-md);
++    }
++
++    .imops-section__header::before {
++      content: '>';
++      opacity: 0.5;
++    }
++
++    .imops-section__header::after {
++      content: '';
++      flex: 1;
++      height: 1px;
++      background: linear-gradient(90deg, var(--color-border), transparent);
++    }
++
++    .imops-text {
++      font-family: var(--font-mono);
++      font-size: 0.85rem;
++      line-height: 1.8;
++      color: var(--color-text);
++      max-width: 680px;
++    }
++
++    .imops-text + .imops-text {
++      margin-top: var(--space-md);
++    }
++
++    .imops-text strong {
++      color: var(--color-text-bright);
++      font-weight: 700;
++    }
++
++    /* ── USE CASE GRID ── */
++
++    .usecase-grid {
++      display: grid;
++      grid-template-columns: repeat(2, 1fr);
++      gap: var(--space-md);
++    }
++
++    .usecase {
++      background: var(--color-bg-card);
++      border: 1px solid var(--color-border);
++      padding: var(--space-lg);
++      transition:
++        border-color var(--duration-normal) ease,
++        transform var(--duration-normal) var(--ease-out-expo);
++    }
++
++    .usecase:hover {
++      border-color: var(--color-border-hover);
++      transform: translateY(-2px);
++    }
++
++    .usecase__icon {
++      font-size: 1.3rem;
++      margin-bottom: var(--space-sm);
++    }
++
++    .usecase__title {
++      font-family: var(--font-mono);
++      font-size: 0.7rem;
++      font-weight: 700;
++      letter-spacing: 0.1em;
++      margin-bottom: var(--space-sm);
++    }
++
++    .usecase__title--clinic   { color: #ff4444; }
++    .usecase__title--gastro   { color: var(--color-accent); }
++    .usecase__title--industry { color: var(--color-secondary); }
++    .usecase__title--crisis   { color: #ffcc00; }
++    .usecase__title--logistics{ color: #44cc66; }
++    .usecase__title--training { color: #aa66ff; }
++
++    .usecase__list {
++      list-style: none;
++      padding: 0;
++      margin: 0;
++    }
++
++    .usecase__list li {
++      font-family: var(--font-mono);
++      font-size: 0.72rem;
++      color: var(--color-text-dim);
++      padding: 3px 0 3px 22px;
++      position: relative;
++    }
++
++    .usecase__list li::before {
++      content: '├─';
++      position: absolute;
++      left: 0;
++      color: var(--color-border);
++    }
++
++    .usecase__list li:last-child::before {
++      content: '└─';
++    }
++
++    /* ── PRINCIPLES ── */
++
++    .principles-grid {
++      display: grid;
++      grid-template-columns: repeat(2, 1fr);
++      gap: var(--space-md);
++    }
++
++    .principle {
++      display: flex;
++      gap: var(--space-sm);
++      align-items: flex-start;
++      padding: var(--space-md);
++      border-left: 2px solid var(--color-accent);
++    }
++
++    .principle__label {
++      font-family: var(--font-mono);
++      font-size: 0.75rem;
++      font-weight: 700;
++      color: var(--color-text-bright);
++      letter-spacing: 0.05em;
++    }
++
++    .principle__desc {
++      font-family: var(--font-mono);
++      font-size: 0.65rem;
++      color: var(--color-text-muted);
++      margin-top: 2px;
++    }
++
++    /* ── CTA SECTION ── */
++
++    .imops-cta {
++      text-align: center;
++      padding: var(--space-2xl) 0;
++      border-top: 1px solid var(--color-border);
++    }
++
++    .imops-btn {
++      display: inline-flex;
++      align-items: center;
++      gap: var(--space-sm);
++      font-family: var(--font-mono);
++      font-size: 0.75rem;
++      font-weight: 700;
++      letter-spacing: 0.1em;
++      color: var(--color-accent);
++      text-decoration: none;
++      padding: var(--space-md) var(--space-lg);
++      border: 1px solid rgba(255,107,53,0.3);
++      transition: all var(--duration-normal) ease;
++    }
++
++    .imops-btn:hover {
++      background: var(--color-accent-subtle);
++      border-color: var(--color-accent);
++      color: var(--color-accent);
++    }
++
++    .imops-btn + .imops-btn {
++      margin-left: var(--space-md);
++    }
++
++    /* ── FOOTER ── */
++
++    .imops-footer {
++      text-align: center;
++      padding: var(--space-lg) 0 var(--space-2xl);
++    }
++
++    .imops-footer__text {
++      font-family: var(--font-mono);
++      font-size: 0.55rem;
++      color: var(--color-text-muted);
++      letter-spacing: 0.15em;
++    }
++
++    /* ── RESPONSIVE ── */
++
++    @media (max-width: 640px) {
++      .usecase-grid,
++      .principles-grid {
++        grid-template-columns: 1fr;
++      }
++
++      .imops-hero__title {
++        font-size: 1.6rem;
++        letter-spacing: 0.1em;
++      }
++
++      .imops-btn + .imops-btn {
++        margin-left: 0;
++        margin-top: var(--space-sm);
++      }
++
++      .imops-cta {
++        display: flex;
++        flex-direction: column;
++        align-items: center;
++      }
++    }
++
++    /* ── SECTION REVEAL ── */
++
++    .imops-section {
++      opacity: 0;
++      transform: translateY(30px);
++      transition: opacity 0.8s var(--ease-out-expo), transform 0.8s var(--ease-out-expo);
++    }
++
++    .imops-section--visible {
++      opacity: 1;
++      transform: translateY(0);
++    }
++  </style>
++</head>
++<body>
++
++  <!-- Back to main -->
++  <nav class="lang-switcher" aria-label="Navigation">
++    <a href="index.html" class="lang-switcher__link" title="Zurück">← ZURÜCK</a>
++  </nav>
++
++  <!-- ════ HERO ════ -->
++  <section class="imops-hero">
++    <!-- Inline SVG Logo -->
++    <svg class="imops-hero__logo" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" aria-label="iMOPS Logo">
++      <path d="M60 0 L100 0 L100 50 L170 50 L170 80 L142 80 L170 220 L130 220 L108 105 L100 80 L90 80 L82 105 L60 220 L20 220 L48 80 L20 80 L20 50 L60 50 Z" fill="#ff6b35"/>
++    </svg>
++
++    <h1 class="imops-hero__title">iMOPS OS</h1>
++    <p class="imops-hero__tagline">KERNEL_26 // OMNI_GRID</p>
++    <p class="imops-hero__version">── v1.0 CORE ──</p>
++  </section>
++
++  <div class="imops-content">
++
++    <!-- ════ WAS IST iMOPS? ════ -->
++    <section class="imops-section" id="about">
++      <h2 class="imops-section__header">WAS IST iMOPS?</h2>
++
++      <p class="imops-text">
++        iMOPS ist ein <strong>deterministisches Betriebssystem</strong> für die operative
++        Steuerung unter Hochlast. Inspiriert von MUMPS – gebaut für
++        Echtzeitumgebungen ohne Cloud, ohne SQL, ohne Latenz.
++      </p>
++      <p class="imops-text">
++        Das System denkt in <strong>Kerneln</strong>, nicht in Datenbanken. Jede Aktion
++        ist atomar, jeder Zustand live. Kein Overhead, kein Warten,
++        kein Datenverlust.
++      </p>
++      <p class="imops-text">
++        Entwickelt für Teams, die unter Druck funktionieren müssen –
++        nicht für Teams, die über Tools diskutieren.
++      </p>
++    </section>
++
++    <!-- ════ EINSATZGEBIETE ════ -->
++    <section class="imops-section" id="einsatz">
++      <h2 class="imops-section__header">EINSATZGEBIETE</h2>
++
++      <div class="usecase-grid">
++
++        <div class="usecase">
++          <div class="usecase__icon">🏥</div>
++          <div class="usecase__title usecase__title--clinic">KLINIK & PFLEGE</div>
++          <ul class="usecase__list">
++            <li>OP-Koordination in Echtzeit</li>
++            <li>Schichtübergabe-Protokolle</li>
++            <li>Medikamenten-Tracking</li>
++          </ul>
++        </div>
++
++        <div class="usecase">
++          <div class="usecase__icon">🍳</div>
++          <div class="usecase__title usecase__title--gastro">GASTRONOMIE & HOTELLERIE</div>
++          <ul class="usecase__list">
++            <li>Produktionssteuerung Küche</li>
++            <li>HACCP-konforme Dokumentation</li>
++            <li>Brigade-Management</li>
++          </ul>
++        </div>
++
++        <div class="usecase">
++          <div class="usecase__icon">🏭</div>
++          <div class="usecase__title usecase__title--industry">INDUSTRIE & FERTIGUNG</div>
++          <ul class="usecase__list">
++            <li>Schichtplanung unter Last</li>
++            <li>Qualitätskontrolle (Audit-Trail)</li>
++            <li>Maschinenpark-Koordination</li>
++          </ul>
++        </div>
++
++        <div class="usecase">
++          <div class="usecase__icon">🚨</div>
++          <div class="usecase__title usecase__title--crisis">EINSATZLEITUNG & KRISE</div>
++          <ul class="usecase__list">
++            <li>Lagebildführung in Echtzeit</li>
++            <li>Ressourcen-Dispatching</li>
++            <li>Protokollierte Entscheidungen</li>
++          </ul>
++        </div>
++
++        <div class="usecase">
++          <div class="usecase__icon">🏗️</div>
++          <div class="usecase__title usecase__title--logistics">BAU & LOGISTIK</div>
++          <ul class="usecase__list">
++            <li>Baustellenkoordination</li>
++            <li>Material-Tracking</li>
++            <li>Subunternehmer-Steuerung</li>
++          </ul>
++        </div>
++
++        <div class="usecase">
++          <div class="usecase__icon">🎓</div>
++          <div class="usecase__title usecase__title--training">AUSBILDUNG & TRAINING</div>
++          <ul class="usecase__list">
++            <li>Prüfungsprotokollierung</li>
++            <li>Kompetenz-Tracking</li>
++            <li>Simulations-Szenarien</li>
++          </ul>
++        </div>
++
++      </div>
++    </section>
++
++    <!-- ════ KERN-PRINZIPIEN ════ -->
++    <section class="imops-section" id="prinzipien">
++      <h2 class="imops-section__header">KERN-PRINZIPIEN</h2>
++
++      <div class="principles-grid">
++        <div class="principle">
++          <div>
++            <div class="principle__label">ZERO LATENCY</div>
++            <div class="principle__desc">Kein Warten, kein Spinner, kein Loading</div>
++          </div>
++        </div>
++        <div class="principle">
++          <div>
++            <div class="principle__label">ZERO CLOUD</div>
++            <div class="principle__desc">Alles lokal, alles unter Kontrolle</div>
++          </div>
++        </div>
++        <div class="principle">
++          <div>
++            <div class="principle__label">ZERO BLOAT</div>
++            <div class="principle__desc">Kein Feature-Müll, kein Overhead</div>
++          </div>
++        </div>
++        <div class="principle">
++          <div>
++            <div class="principle__label">FULL AUDIT</div>
++            <div class="principle__desc">Jede Aktion nachweisbar, jeder Zustand dokumentiert</div>
++          </div>
++        </div>
++      </div>
++    </section>
++
++    <!-- ════ CTA ════ -->
++    <div class="imops-cta">
++      <a href="index.html" class="imops-btn">
++        ◀ ZURÜCK ZUR LANDINGPAGE
++      </a>
++      <a href="https://github.com/AndreasPelczer/iMOPS_OS_CORE" class="imops-btn" target="_blank" rel="noopener">
++        ◆ GITHUB REPOSITORY
++      </a>
++    </div>
++
++    <!-- ════ FOOTER ════ -->
++    <div class="imops-footer">
++      <p class="imops-footer__text">BUILT BY PELCZER // KERNEL_26 // DEAD RABBIT PRODUCTIONS</p>
++    </div>
++
++  </div>
++
++  <!-- Ambient Particles (same as main page) -->
++  <div class="ambient-particles" aria-hidden="true">
++    <div class="ambient-particles__dot"></div>
++    <div class="ambient-particles__dot"></div>
++    <div class="ambient-particles__dot"></div>
++  </div>
++
++  <div class="ambient-sweep" aria-hidden="true"></div>
++
++  <script>
++    document.addEventListener('DOMContentLoaded', () => {
++      // Section reveal with IntersectionObserver
++      const sections = document.querySelectorAll('.imops-section');
++      const observer = new IntersectionObserver((entries) => {
++        entries.forEach(entry => {
++          if (entry.isIntersecting) {
++            entry.target.classList.add('imops-section--visible');
++          }
++        });
++      }, {
++        threshold: 0.1,
++        rootMargin: '-40px'
++      });
++
++      sections.forEach(s => observer.observe(s));
++
++      // Cursor glow (desktop only)
++      if (window.innerWidth > 768) {
++        const lerp = (a, b, f) => a + (b - a) * f;
++        const glow = document.createElement('div');
++        glow.className = 'cursor-glow';
++        document.body.appendChild(glow);
++        setTimeout(() => glow.classList.add('cursor-glow--active'), 500);
++
++        let mx = 0, my = 0, gx = 0, gy = 0;
++        document.addEventListener('mousemove', (e) => { mx = e.clientX; my = e.clientY; }, { passive: true });
++
++        function tick() {
++          gx = lerp(gx, mx, 0.15);
++          gy = lerp(gy, my, 0.15);
++          glow.style.left = gx + 'px';
++          glow.style.top = gy + 'px';
++          requestAnimationFrame(tick);
++        }
++        tick();
++      }
++    });
++  </script>
++
++</body>
++</html>
+diff --git a/index.html b/index.html
+index 757b2be..b38a175 100644
+--- a/index.html
++++ b/index.html
+@@ -16,6 +16,16 @@
+ </head>
+ <body>
+ 
++  <!-- ============================================
++       SENTINEL: iMOPS Floating Logo
++       ============================================ -->
++  <a href="imops.html" class="sentinel" id="sentinel" title="iMOPS – Mehr erfahren">
++    <svg class="sentinel__logo" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg" aria-label="iMOPS">
++      <path d="M60 0 L100 0 L100 50 L170 50 L170 80 L142 80 L170 220 L130 220 L108 105 L100 80 L90 80 L82 105 L60 220 L20 220 L48 80 L20 80 L20 50 L60 50 Z" fill="#ff6b35"/>
++    </svg>
++    <span class="sentinel__label">iMOPS</span>
++  </a>
++
+   <!-- Language Switcher -->
+   <nav class="lang-switcher" aria-label="Sprache wählen">
+     <a href="index.html" class="lang-switcher__link lang-switcher__link--active" title="Deutsch">DE</a>
+@@ -95,8 +105,8 @@
+ 
+         <div class="card-grid">
+           <!-- iMOPS -->
+-          <a class="card" href="https://github.com/AndreasPelczer/iMOPS_OS_CORE" target="_blank" rel="noopener">
+-            <span class="card__type">Open Source · iOS</span>
++          <a class="card" href="imops.html">
++            <span class="card__type">Open Source · iOS · Kernel</span>
+             <h3 class="card__title">iMOPS</h3>
+             <p class="card__description">
+               In-Memory Kernel für Produktionssteuerung. HACCP-konform, offline, deterministisch. MUMPS-inspiriert. Für Küchen, die kein WLAN haben und keine Zeit für Abstürze.
+@@ -105,7 +115,7 @@
+               <span class="badge badge--live">TESTFLIGHT</span>
+               <span class="badge">MIT LIZENZ</span>
+             </div>
+-            <span class="card__arrow">→</span>
++            <span class="card__arrow">→ MEHR ERFAHREN</span>
+           </a>
+ 
+           <!-- Seubert-Assistent -->
+@@ -724,6 +734,35 @@
+         progress.style.transform = `scaleX(${scrolled})`;
+       }, { passive: true });
+ 
++      // --- SENTINEL: iMOPS Logo Scroll Behavior ---
++      const sentinel = document.getElementById('sentinel');
++      const sentinelLogo = sentinel ? sentinel.querySelector('.sentinel__logo') : null;
++      const projekteSection = document.getElementById('projekte');
++
++      if (sentinel && sentinelLogo) {
++        // Scroll-linked subtle rotation
++        window.addEventListener('scroll', () => {
++          const scrollProgress = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight);
++          const rotation = scrollProgress * 8; // 0° to 8° over full page
++          sentinelLogo.style.transform = `rotate(${rotation}deg)`;
++        }, { passive: true });
++
++        // Glow burst when software section is in view
++        if (projekteSection) {
++          const sentinelObserver = new IntersectionObserver((entries) => {
++            entries.forEach(entry => {
++              if (entry.isIntersecting) {
++                sentinel.classList.add('sentinel--active');
++              } else {
++                sentinel.classList.remove('sentinel--active');
++              }
++            });
++          }, { threshold: 0.2 });
++
++          sentinelObserver.observe(projekteSection);
++        }
++      }
++
+       console.log('✅ Ready');
+ 
+       // --- EASTER EGG: Conway's Game of Life ---

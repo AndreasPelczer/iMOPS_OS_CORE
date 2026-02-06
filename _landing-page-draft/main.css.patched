@@ -1,0 +1,20 @@
+/* ===========================================
+   MAIN STYLESHEET
+   Dead Rabbit Productions - Landing Page
+
+   Struktur:
+   1. Variables (Design Tokens)
+   2. Base (Reset & Foundation)
+   3. Components (Modular CSS)
+   4. Ambient (Das gewisse Extra)
+   =========================================== */
+
+@import 'variables.css';
+@import 'base.css';
+@import 'components/hero.css';
+@import 'components/header.css';
+@import 'components/cards.css';
+@import 'components/sections.css';
+@import 'components/footer.css';
+@import 'components/ambient.css';
+@import 'components/sentinel.css';

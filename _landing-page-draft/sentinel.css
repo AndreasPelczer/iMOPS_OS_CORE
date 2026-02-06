@@ -1,0 +1,151 @@
+/* ===========================================
+   SENTINEL COMPONENT
+   iMOPS Floating Logo - Fixed Right Side
+   =========================================== */
+
+/* --- SENTINEL CONTAINER --- */
+.sentinel {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+
+  /* Smooth entry */
+  opacity: 0;
+  animation: sentinel-enter 1s var(--ease-out-expo) 2s forwards;
+}
+
+@keyframes sentinel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+/* --- LOGO SVG --- */
+.sentinel__logo {
+  width: 36px;
+  height: 36px;
+  opacity: 0.15;
+  transition:
+    opacity var(--duration-slow) var(--ease-out-expo),
+    filter var(--duration-slow) var(--ease-out-expo),
+    transform var(--duration-slow) var(--ease-out-expo);
+  filter: drop-shadow(0 0 0px transparent);
+
+  /* Subtle breathing */
+  animation: sentinel-breathe 4s ease-in-out infinite;
+}
+
+@keyframes sentinel-breathe {
+  0%, 100% {
+    opacity: 0.15;
+    filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0));
+  }
+  50% {
+    opacity: 0.22;
+    filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.1));
+  }
+}
+
+/* Hover: Glow up */
+.sentinel:hover .sentinel__logo {
+  opacity: 0.6;
+  filter: drop-shadow(0 0 20px rgba(255, 107, 53, 0.4));
+  animation: none;
+}
+
+/* --- LABEL (Hidden until hover) --- */
+.sentinel__label {
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 2px;
+  color: var(--color-accent);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--duration-normal) var(--ease-out-expo),
+    transform var(--duration-normal) var(--ease-out-expo);
+  white-space: nowrap;
+}
+
+.sentinel:hover .sentinel__label {
+  opacity: 0.7;
+  transform: translateY(0);
+}
+
+/* --- GLOW BURST (When software section is in view) --- */
+.sentinel--active .sentinel__logo {
+  opacity: 0.45;
+  filter: drop-shadow(0 0 24px rgba(255, 107, 53, 0.35));
+  animation: sentinel-burst 0.8s var(--ease-out-expo) forwards, sentinel-breathe-active 4s ease-in-out 0.8s infinite;
+}
+
+@keyframes sentinel-burst {
+  0% {
+    opacity: 0.15;
+    filter: drop-shadow(0 0 4px rgba(255, 107, 53, 0));
+  }
+  40% {
+    opacity: 0.7;
+    filter: drop-shadow(0 0 40px rgba(255, 107, 53, 0.5));
+  }
+  100% {
+    opacity: 0.45;
+    filter: drop-shadow(0 0 24px rgba(255, 107, 53, 0.35));
+  }
+}
+
+@keyframes sentinel-breathe-active {
+  0%, 100% {
+    opacity: 0.4;
+    filter: drop-shadow(0 0 20px rgba(255, 107, 53, 0.3));
+  }
+  50% {
+    opacity: 0.5;
+    filter: drop-shadow(0 0 28px rgba(255, 107, 53, 0.4));
+  }
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+  /* Mobile: Badge in bottom-right corner */
+  .sentinel {
+    top: auto;
+    bottom: 20px;
+    right: 16px;
+    transform: none;
+    animation: sentinel-enter-mobile 1s var(--ease-out-expo) 2s forwards;
+  }
+
+  @keyframes sentinel-enter-mobile {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .sentinel__logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .sentinel__label {
+    display: none;
+  }
+}
