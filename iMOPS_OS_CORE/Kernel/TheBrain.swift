@@ -636,6 +636,10 @@ final class TheBrain {
         // 5) Schicht-Start registrieren (BourdainGuard Gen 3)
         kernelQueue.sync { storage["^SYS.SHIFT_START"] = Date() }
         
+        // 6) Guard-System initialisieren (KernelGuards Gen 3)
+        set("^SYS.SECURITY_LEVEL", "standard")  // Standard-Modus beim Boot
+        set("^SYS.ADMIN_REQUEST_COUNT", 0)      // Keine Admin-Abfragen beim Start
+        
         // --- DER TRICK FÜR DEN LOG ---
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             print("iMOPS-KERNEL: Labor-Seed abgeschlossen. Matrix-Score: \(self.meierScore)")
