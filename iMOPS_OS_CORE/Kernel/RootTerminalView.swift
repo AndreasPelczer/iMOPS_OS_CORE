@@ -162,6 +162,30 @@ struct BranchSelectView: View {
         VStack(spacing: 30) {
             Spacer()
 
+            // --- APP LOGO ---
+            ZStack {
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.orange.opacity(0.3), Color.orange.opacity(0.15)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 80, height: 80)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(Color.orange.opacity(0.5), lineWidth: 2)
+                    )
+                
+                Text("^")
+                    .font(.system(size: 56, weight: .black, design: .monospaced))
+                    .foregroundColor(.orange)
+                    .offset(y: -2)
+            }
+            .shadow(color: Color.orange.opacity(0.3), radius: 8, x: 0, y: 4)
+            .padding(.bottom, 10)
+
             Text("iMOPS OS")
                 .font(.system(size: 32, weight: .black, design: .monospaced))
                 .foregroundColor(.white)
@@ -198,6 +222,10 @@ struct BranchSelectView: View {
             Text("EIN KERNEL. JEDE BRANCHE.")
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundColor(.white.opacity(0.3))
+                .padding(.bottom, 5)
+            
+            // --- BIN DA. ;=) ---
+            TerminalCursorView()
                 .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -205,5 +233,27 @@ struct BranchSelectView: View {
     }
 }
 
+// MARK: - Terminal Cursor (BIN DA. ;=))
 
+struct TerminalCursorView: View {
+    @State private var showCursor = true
+    
+    var body: some View {
+        HStack(spacing: 2) {
+            Text("BIN DA. ;=)")
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundColor(.green)
+            
+            Text("▋")
+                .font(.system(size: 9, design: .monospaced))
+                .foregroundColor(.green)
+                .opacity(showCursor ? 1.0 : 0.0)
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
+                showCursor = false
+            }
+        }
+    }
+}
 
