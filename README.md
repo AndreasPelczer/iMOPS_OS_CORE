@@ -82,12 +82,18 @@ iMOPS provides:
 - In-memory kernel (no CoreData / SQL required)
 - Deterministic SET / GET / KILL data model with type-safe DSL
 - Offline-first architecture
-- Immutable HACCP archive ("Tresor")
+- Typed task model (`KernelArbeitsschritt`) with 4-stage lifecycle
+- Immutable HACCP archive ("Tresor") with Commander sign-off
 - Timestamped audit trail with export function
 - Responsibility tracking
 - Pelczer-Matrix / JOSHUA-Matrix workload scoring (Meier-Score)
 - Score history (last 50 data points for load visualization)
-- KernelGuards: SecurityLevel escalation, Rio Reiser Jitter, BourdainGuard fatigue protection
+- **KernelGuards (Gen 3 Protection Stack):**
+  - `SecurityLevel` – Ethical status with auto-escalation
+  - `MenschMeierModus` – Rio Reiser Jitter (anti-tracking noise), anonymization ("Brigade" poison pill), Privacy Shield (anti-abuse detection)
+  - `BourdainGuard` – Fatigue protection (8h warning, 10h reset), whisper messages, forced training mode
+  - `KernelGuards` orchestrator – Single entry-point combining all guards into a `GuardReport`
+- Guard integrity test suite (tamper detection, threshold validation, jitter verification)
 - Zero-waste masterstroke system (staff canteen redistribution)
 - Rush hour simulation for stress testing
 - Minimal UI layer with reactive stress visualization
@@ -101,10 +107,11 @@ iMOPS provides:
 
 | File | Purpose |
 |------|---------|
-| `TheBrain.swift` | Memory engine (SET / GET / KILL), Pelczer-Matrix (Meier-Score), Score-History |
+| `TheBrain.swift` | Memory engine (SET / GET / KILL), Pelczer-Matrix (Meier-Score), Score-History, BourdainGuard integration |
 | `Syntax.swift` | Type-safe DSL paths, BrainNamespace, iMOPS command syntax |
-| `TaskRepository.swift` | Task creation, HACCP archiving (immutable vault) |
-| `KernelGuards.swift` | SecurityLevel, MenschMeierModus (Rio Reiser Jitter), BourdainGuard (fatigue protection) |
+| `KernelArbeitsschritt.swift` | Typed task model bridging `[String: Any]` storage to `KernelArbeitsschritt` structs |
+| `TaskRepository.swift` | Task creation, 4-stage lifecycle transitions, HACCP archiving (immutable vault) |
+| `KernelGuards.swift` | SecurityLevel, MenschMeierModus, BourdainGuard, GuardReport, KernelGuards orchestrator |
 | `RootTerminalView.swift` | State-machine router based on `^NAV.LOCATION` |
 | `ProductionTaskView.swift` | Active task display with stress visualization |
 | `iMOPS_OS_COREApp.swift` | App entry point (kernel bootloader) |
@@ -162,18 +169,136 @@ Direct. Predictable. No hidden layers.
 
 ---
 
+## Task Lifecycle (KernelArbeitsschritt)
+
+Every task in iMOPS follows a strict 4-stage lifecycle:
+
+```
+offen → inArbeit → erledigt → abgenommen
+```
+
+| Stage | Storage Value | Meaning |
+|-------|--------------|---------|
+| `offen` | `OPEN` | Created, waiting for assignment |
+| `inArbeit` | `IN_ARBEIT` | Claimed by a brigade member |
+| `erledigt` | `ERLEDIGT` | Completed, sealed in HACCP archive |
+| `abgenommen` | `ABGENOMMEN` | Commander sign-off (final stamp) |
+
+Tasks are bridged from the raw `[String: Any]` kernel storage to typed `KernelArbeitsschritt` structs via `fromStorage(id:storage:)`. This gives downstream projects type safety without replacing the MUMPS-style storage model.
+
+```swift
+// Typed task from raw storage
+let schritte = TheBrain.shared.getArbeitsschritte()
+let active = schritte.filter { $0.status.isActiveLoad }
+
+// Status transition with validation
+TaskRepository.transitionTask(id: "001", to: .inArbeit)
+TaskRepository.transitionTask(id: "001", to: .erledigt) // → HACCP sealed
+```
+
+Only valid transitions are allowed. Invalid transitions are rejected with a kernel error.
+
+---
+
 ## HACCP Vault (Immutable Archive)
 
 When a task is completed, it is:
 
 - timestamped
 - assigned to a responsible person
-- archived
-- locked
+- archived with medical/SOP snapshots
+- locked (KILLTREE removes the active task)
+- optionally signed off by the Commander (`.abgenommen`)
 
 This creates traceability, audit safety, legal defensibility, and inspection readiness.
 
 Data is not edited retroactively. History remains history.
+
+---
+
+## KernelGuards (Gen 3 Protection Stack)
+
+The guard system protects individuals from micro-tracking, fatigue, and management abuse. Anyone who forks iMOPS_OS_CORE inherits the complete protection stack.
+
+### SecurityLevel
+
+Two levels. No more, no less.
+
+| Level | Meaning |
+|-------|---------|
+| `.standard` | Normal operation, names visible |
+| `.deEscalation` | Guerrilla mode, names anonymized to "Brigade" |
+
+SecurityLevel is `Codable` and `CaseIterable`. The test suite verifies that no third level can be added.
+
+### MenschMeierModus (The Immune System)
+
+Three protection mechanisms:
+
+**1. Rio Reiser Jitter** – Every aggregated value gets +/- 5% random noise. Nobody gets reduced to a number. The jitter is:
+- clamped to 0.0...1.0
+- non-deterministic (verified over 1000 iterations in tests)
+- amplitude-limited to exactly 5%
+
+**2. Anonymization (The Poison Pill)** – In de-escalation mode, all author names are replaced with "Brigade". No partial name leaks.
+
+**3. Privacy Shield (Anti-Abuse)** – If more than 50 detail queries arrive in a session, the system auto-escalates to de-escalation mode. Exception: Allergen steps are ALWAYS transparent (human life > data privacy).
+
+### BourdainGuard (Fatigue Protection)
+
+*"A dead craftsman keeps no promises."*
+
+| Hours | Level | Effect |
+|-------|-------|--------|
+| < 8h | `.fresh` | Normal operation |
+| >= 8h | `.warning` | Insurance warning, +15% matrix load, whisper message |
+| >= 10h | `.reset` | Forced training mode, +30% matrix load, maximum jitter |
+
+Jitter strength escalates with fatigue: 0.05 (fresh) → 0.10 (warning) → 0.15 (reset).
+
+Whisper messages are gentle nudges, not commands. They appear in the kernel log.
+
+### KernelGuards Orchestrator
+
+Single entry-point that combines all guards:
+
+```swift
+let report = KernelGuards.evaluate(
+    schritte: brain.getArbeitsschritte(),
+    securityLevel: .standard,
+    sessionStart: shiftStart,
+    adminRequestCount: requestCount
+)
+
+// report.securityLevel      → may auto-escalate
+// report.fatigueLevel       → .fresh / .warning / .reset
+// report.brigadeLoad        → 0.0...1.0 (with jitter)
+// report.forceTrainingMode  → true if 10h+ shift
+// report.privacyShieldActive → true if >50 queries
+// report.jitterStrength     → fatigue-scaled noise
+// report.whisperMessage     → optional gentle warning
+// report.terminalStatus     → "SECURITY: ... | FATIGUE: ... | LOAD: ..."
+```
+
+---
+
+## Guard Integrity Tests
+
+The test suite (`iMOPS_OS_CORETests.swift`) uses the Swift Testing framework and acts as a tamper detection system. If these tests fail, the system is considered compromised. No deploy.
+
+**What the tests verify:**
+
+| Category | Tests |
+|----------|-------|
+| SecurityLevel | Exactly 2 cases, Codable roundtrip, shield activation |
+| Rio Reiser Jitter | Clamping (1000 iterations), randomness, amplitude <= 5% |
+| Anonymization | Standard shows real name, de-escalation always returns "Brigade", no partial leaks |
+| Privacy Shield | Threshold at >50 queries, allergen always transparent, routine protected |
+| BourdainGuard | 8h/10h thresholds, training mode enforcement, jitter escalation, whisper messages |
+| KernelGuards | Auto-escalation at 100 queries, no escalation at 10, anonymization follows report |
+| Terminal Status | Contains SECURITY, FATIGUE, LOAD, TRAINING, PRIVACY fields |
+| Worst Case | 12h shift + 200 queries + de-escalation: all guards fire simultaneously |
+| Tamper Detection | No hidden SecurityLevels, no hidden FatigueLevels, jitter never zero, sane thresholds |
 
 ---
 
@@ -241,8 +366,9 @@ It is a **local operational aid**. It supports people. It does not monitor them.
 ## Requirements
 
 - iOS 17+
-- Xcode 15+
+- Xcode 16+
 - Swift 5.9+
+- Swift Testing framework (for guard integrity tests)
 
 ---
 
