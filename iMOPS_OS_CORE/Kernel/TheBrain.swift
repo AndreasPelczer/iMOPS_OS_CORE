@@ -210,6 +210,28 @@ final class TheBrain {
         }
     }
 
+    // MARK: - Bridge: KernelArbeitsschritt
+
+    /// Materialisiert alle aktiven Tasks als typisierte KernelArbeitsschritt-Objekte.
+    /// Lese-Fassade ueber den [String: Any]-Storage. Thread-safe.
+    func getArbeitsschritte() -> [KernelArbeitsschritt] {
+        let snapshot: [String: Any] = kernelQueue.sync { storage }
+
+        // Alle einzigartigen Task-IDs finden
+        let taskIDs = Set(
+            snapshot.keys
+                .filter { $0.hasPrefix("^TASK.") }
+                .compactMap { key -> String? in
+                    let parts = key.components(separatedBy: ".")
+                    return parts.count >= 2 ? parts[1] : nil
+                }
+        )
+
+        return taskIDs.compactMap { id in
+            KernelArbeitsschritt.fromStorage(id: id, storage: snapshot)
+        }
+    }
+
     // MARK: - Inventory / Export
 
     /// Inventur: alle Keys (Snapshot für Debugging)

@@ -8,9 +8,10 @@
 //  - Gen 1: IMops_alt/DATABASE/MenschMeierModus.swift (Anonymisierung, PrivacyShield)
 //  - Gen 2: Gastro_GRID-Omni/Kernel/MenschMeierModus.swift (Jitter, Brigade-Load)
 //  - Gen 2: Gastro_GRID-Omni/Kernel/BourdainGuard.swift (Ermuedung)
-//  - Gen 3: KernelGuards.swift (Orchestrator) - NEU
+//  - Gen 3: KernelGuards.swift (Orchestrator)
 //
-//  Adaptiert fuer iMOPS_OS_CORE: TheBrain statt KernelArbeitsschritt
+//  Vollstaendig integriert in iMOPS_OS_CORE.
+//  Wer diesen CORE forkt, erbt den kompletten Schutz-Stack.
 //
 
 import Foundation
@@ -56,15 +57,15 @@ struct MenschMeierModus {
     // MARK: Rio-Reiser-Prinzip (Jitter)
 
     /// Berechnet die aggregierte Brigade-Last mit +/- 5% Rauschen.
-    /// Adaptiert fuer TheBrain: arbeitet mit Task-Zaehlung statt KernelArbeitsschritt.
+    /// Niemand wird zur Nummer degradiert.
     ///
-    /// - Parameters:
-    ///   - openCount: Anzahl offener Tasks
-    ///   - totalCount: Gesamtzahl aller Tasks (offen + archiviert)
+    /// - Parameter schritte: Alle Arbeitsschritte aus dem Kernel
     /// - Returns: Belastungswert 0.0 ... 1.0 (mit Jitter)
-    static func calculateBrigadeLoad(openCount: Int, totalCount: Int) -> Double {
-        guard totalCount > 0 else { return 0.0 }
-        let rawLoad = Double(openCount) / Double(totalCount)
+    @available(iOS 17.0, *)
+    static func calculateBrigadeLoad(from schritte: [KernelArbeitsschritt]) -> Double {
+        guard !schritte.isEmpty else { return 0.0 }
+        let active = schritte.filter { $0.status.isActiveLoad }.count
+        let rawLoad = Double(active) / Double(schritte.count)
         return applyRioReiserJitter(value: rawLoad)
     }
 
@@ -229,36 +230,31 @@ struct GuardReport {
 }
 
 // ============================================================
-// MARK: - KernelGuards Orchestrator (Gen 3 - NEU)
+// MARK: - KernelGuards Orchestrator (Gen 3)
 // Kombiniert alle Guards zu einem einzigen Entry-Point.
-// Adaptiert fuer iMOPS_OS_CORE: TheBrain statt KernelArbeitsschritt
+// Wer iMOPS_OS_CORE forkt, erbt diesen Schutz-Stack komplett.
 // ============================================================
 
 struct KernelGuards {
 
     /// Fuehrt alle Guards aus und erstellt einen Report.
-    /// Adaptiert: Nutzt openTaskCount/totalTaskCount statt KernelArbeitsschritt-Array.
     ///
     /// - Parameters:
-    ///   - openTaskCount: Anzahl offener Tasks im Kernel
-    ///   - totalTaskCount: Gesamtzahl Tasks (offen + archiviert)
+    ///   - schritte: Alle Arbeitsschritte aus dem Kernel
     ///   - securityLevel: Aktueller SecurityLevel
     ///   - sessionStart: Schicht-Beginn (fuer BourdainGuard)
     ///   - adminRequestCount: Anzahl Admin-Abfragen (fuer PrivacyShield)
     /// - Returns: GuardReport mit allen Empfehlungen
+    @available(iOS 17.0, *)
     static func evaluate(
-        openTaskCount: Int,
-        totalTaskCount: Int,
+        schritte: [KernelArbeitsschritt],
         securityLevel: SecurityLevel,
         sessionStart: Date,
         adminRequestCount: Int = 0
     ) -> GuardReport {
 
         // 1. MenschMeierModus: Brigade-Last berechnen
-        let load = MenschMeierModus.calculateBrigadeLoad(
-            openCount: openTaskCount,
-            totalCount: totalTaskCount
-        )
+        let load = MenschMeierModus.calculateBrigadeLoad(from: schritte)
 
         // 2. BourdainGuard: Ermuedung pruefen
         let fatigue = BourdainGuard.checkWorkLifeBalance(startTime: sessionStart)
