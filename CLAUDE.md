@@ -53,7 +53,13 @@ Alles in einer Datei: `KernelGuards.swift`
   Load-Multiplikator (+15%/+30%), Whisper Messages im Kernel-Log
 - Schicht-Start in `seed()` registriert (`^SYS.SHIFT_START`)
 - HACCP-Archiv: Rolle statt Name, Stundenfenster statt Millisekunden (DSGVO-konform)
-- Export (`exportLog()`): Guards werden vor Ausgabe angewendet
+- Export: Guards werden vor Ausgabe angewendet (alle drei Formate)
+- **ExportView** (CommanderView.swift): Tagesbericht (Text), Audit CSV, Journal JSON
+  mit SHA-256 Versiegelung. Import CryptoKit. NICHT AENDERN.
+- `exportLog()`, `exportCSV()`, `exportJSON()` in TheBrain.swift:
+  Alle drei wenden DSGVO-Guards an (PrivacyShield + SecurityLevel).
+  `prepareExport()` ist die gemeinsame Guard-Vorbereitung. NICHT AENDERN.
+- `ArchiveRow` liest `^ARCHIVE.*.ROLE` (nicht USER). NICHT AENDERN.
 
 ## DEIN AUFTRAG: Guards in die UI verdrahten
 
@@ -83,10 +89,11 @@ Die Guards existieren, sind getestet, aber die UI reagiert nicht darauf.
 5. **Training Mode anzeigen**
    - Wenn `report.forceTrainingMode`: UI-Hinweis dass Praezisionsmodus aktiv ist
 
-6. **Export absichern**
-   - CommanderView: `exportLog()` bekommt bereits `securityLevel` und
-     `adminRequestCount` als Parameter. Diese aus dem aktuellen GuardReport
-     durchreichen.
+6. **Export: SecurityLevel + adminRequestCount durchreichen**
+   - Die ExportView ruft `brain.exportLog()`, `brain.exportCSV()`,
+     `brain.exportJSON()` bereits korrekt auf (Default-Parameter).
+   - OPTIONAL: Wenn du einen adminRequestCount-Zaehler einfuehrst,
+     diesen an die Export-Methoden weitergeben.
 
 ### Was du NICHT tun darfst:
 
@@ -108,6 +115,15 @@ Die Guards existieren, sind getestet, aber die UI reagiert nicht darauf.
 
 - **KEINEN bestehenden Guard-Code aendern.** Die Guard-Logik in KernelGuards.swift
   ist getestet und juristisch geprueft. Nur die UI-Anbindung ist dein Job.
+
+- **ExportView, exportLog/CSV/JSON, ArchiveRow NICHT aendern.**
+  Der Export ist fertig: 3 Formate, SHA-256, DSGVO-Guards. Finger weg.
+
+- **KEINE Millisekunden-Zeitstempel einfuehren.** Archiv nutzt Stundenfenster
+  ("14:00-14:59"). Das ist DSGVO Art. 5 Abs. 1 lit. c (Datenminimierung).
+
+- **KEINE Namen in Archiv oder Export schreiben.** Nur Rollen (Gardemanger, Runner).
+  Das Archiv-Feld heisst `ROLE`, nicht `USER`.
 
 ## Regeln
 
