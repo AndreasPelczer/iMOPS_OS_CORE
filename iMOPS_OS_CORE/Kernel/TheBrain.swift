@@ -284,6 +284,119 @@ final class TheBrain {
         return log
     }
 
+    /// Exportiert den Archiv-Bereich als CSV.
+    /// Spalten: ID, Titel, Zeitfenster, Rolle, Medical, SOP
+    /// DSGVO-Konformitaet: Guards werden VOR Export angewendet.
+    func exportCSV(securityLevel: SecurityLevel = .standard,
+                   adminRequestCount: Int = 0) -> String {
+        let (ids, snapshot, effectiveLevel) = prepareExport(
+            securityLevel: securityLevel, adminRequestCount: adminRequestCount
+        )
+
+        var csv = "ID;TITEL;ZEITFENSTER;ROLLE;MEDICAL;SOP\n"
+
+        for id in ids {
+            let title = snapshot["^ARCHIVE.\(id).TITLE"] as? String ?? ""
+            let time = snapshot["^ARCHIVE.\(id).TIME"] as? String ?? ""
+            var role = snapshot["^ARCHIVE.\(id).ROLE"] as? String ?? "Brigade"
+            let medical = snapshot["^ARCHIVE.\(id).MEDICAL_SNAPSHOT"] as? String ?? ""
+            let sop = snapshot["^ARCHIVE.\(id).SOP_REFERENCE"] as? String ?? ""
+
+            if effectiveLevel == .deEscalation {
+                role = MenschMeierModus.anonymizeForAdmin(
+                    author: role, securityLevel: effectiveLevel
+                )
+            }
+
+            csv += "\(id);\(title);\(time);\(role);\(medical);\(sop)\n"
+        }
+
+        return csv
+    }
+
+    /// Exportiert den Archiv-Bereich als JSON.
+    /// DSGVO-Konformitaet: Guards werden VOR Export angewendet.
+    func exportJSON(securityLevel: SecurityLevel = .standard,
+                    adminRequestCount: Int = 0) -> String {
+        let (ids, snapshot, effectiveLevel) = prepareExport(
+            securityLevel: securityLevel, adminRequestCount: adminRequestCount
+        )
+
+        var entries: [[String: String]] = []
+
+        for id in ids {
+            let title = snapshot["^ARCHIVE.\(id).TITLE"] as? String ?? ""
+            let time = snapshot["^ARCHIVE.\(id).TIME"] as? String ?? ""
+            var role = snapshot["^ARCHIVE.\(id).ROLE"] as? String ?? "Brigade"
+            let medical = snapshot["^ARCHIVE.\(id).MEDICAL_SNAPSHOT"] as? String ?? ""
+            let sop = snapshot["^ARCHIVE.\(id).SOP_REFERENCE"] as? String ?? ""
+
+            if effectiveLevel == .deEscalation {
+                role = MenschMeierModus.anonymizeForAdmin(
+                    author: role, securityLevel: effectiveLevel
+                )
+            }
+
+            entries.append([
+                "id": id, "titel": title, "zeitfenster": time,
+                "rolle": role, "medical": medical, "sop": sop
+            ])
+        }
+
+        let meta: [String: Any] = [
+            "version": "iMOPS v1.0",
+            "exportiert": Date().description,
+            "security": effectiveLevel.displayName,
+            "eintraege": entries.count
+        ]
+
+        // Manuelles JSON (kein JSONEncoder noetig fuer [String: Any])
+        var json = "{\n"
+        json += "  \"meta\": {\n"
+        json += "    \"version\": \"\(meta["version"] ?? "")\",\n"
+        json += "    \"exportiert\": \"\(meta["exportiert"] ?? "")\",\n"
+        json += "    \"security\": \"\(meta["security"] ?? "")\",\n"
+        json += "    \"eintraege\": \(meta["eintraege"] ?? 0)\n"
+        json += "  },\n"
+        json += "  \"archiv\": [\n"
+
+        for (i, entry) in entries.enumerated() {
+            json += "    {\n"
+            json += "      \"id\": \"\(entry["id"] ?? "")\",\n"
+            json += "      \"titel\": \"\(entry["titel"] ?? "")\",\n"
+            json += "      \"zeitfenster\": \"\(entry["zeitfenster"] ?? "")\",\n"
+            json += "      \"rolle\": \"\(entry["rolle"] ?? "")\",\n"
+            json += "      \"medical\": \"\(entry["medical"] ?? "")\",\n"
+            json += "      \"sop\": \"\(entry["sop"] ?? "")\"\n"
+            json += "    }\(i < entries.count - 1 ? "," : "")\n"
+        }
+
+        json += "  ]\n"
+        json += "}"
+        return json
+    }
+
+    /// Gemeinsame Guard-Vorbereitung fuer alle Export-Formate.
+    /// Gibt (sortierte IDs, Snapshot, effektives SecurityLevel) zurueck.
+    private func prepareExport(
+        securityLevel: SecurityLevel,
+        adminRequestCount: Int
+    ) -> (ids: [String], snapshot: [String: Any], effectiveLevel: SecurityLevel) {
+        let snapshot: [String: Any] = kernelQueue.sync { storage }
+
+        let shieldActive = MenschMeierModus.shouldTriggerPrivacyShield(
+            requestCount: adminRequestCount
+        )
+        let effectiveLevel: SecurityLevel = shieldActive ? .deEscalation : securityLevel
+
+        let ids = snapshot.keys
+            .filter { $0.hasPrefix("^ARCHIVE.") && $0.hasSuffix(".TITLE") }
+            .compactMap { $0.components(separatedBy: ".").dropFirst().first }
+            .sorted(by: >)
+
+        return (ids, snapshot, effectiveLevel)
+    }
+
     /// Holt alle versiegelten IDs aus dem Tresor (^ARCHIVE)
     func getArchiveIDs() -> [String] {
         let snapshot = kernelQueue.sync { storage }
