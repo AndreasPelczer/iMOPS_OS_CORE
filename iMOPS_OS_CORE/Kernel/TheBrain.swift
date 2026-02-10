@@ -580,6 +580,15 @@ final class TheBrain {
         return results
     }
 
+    /// Holt alle Brigade-Mitglieder aus dem Kernel
+    func getBrigadeIDs() -> [String] {
+        let snapshot = kernelQueue.sync { storage }
+        return snapshot.keys
+            .filter { $0.hasPrefix("^BRIGADE.") && $0.hasSuffix(".NAME") }
+            .compactMap { $0.components(separatedBy: ".").dropFirst().first }
+            .sorted()
+    }
+
     /// Holt alle versiegelten IDs aus dem Tresor (^ARCHIVE)
     func getArchiveIDs() -> [String] {
         let snapshot = kernelQueue.sync { storage }
@@ -607,38 +616,28 @@ final class TheBrain {
 
     // MARK: - Seed / Boot
 
-    /// Boot-Sequenz: Minimal-Daten + ChefIQ Injektion
-    func seed() {
-        // 1) Brigade laden (Stamm-Mannschaft)
-        set("^BRIGADE.HARRY.NAME", "Harry Meier")
-        set("^BRIGADE.HARRY.ROLE", "Gardemanger")
-        set("^BRIGADE.LUKAS.NAME", "Lukas")
-        set("^BRIGADE.LUKAS.ROLE", "Runner")
+    /// Boot-Sequenz: Branche waehlen, Daten laden, System zuenden
+    func seed(branche: Branche = .kueche) {
+        // 1) Branche im Kernel merken
+        set("^SYS.BRANCHE", branche.rawValue)
 
-        // 2) Den "Smart-Task" 001 vorbereiten
-        set("^TASK.001.TITLE", "MATJES WÄSSERN")
-        set("^TASK.001.CREATED", Date().timeIntervalSince1970)
-        
-        // Zuerst das Gewicht (Kognitive Last) setzen...
-        set("^TASK.001.WEIGHT", 5)
-        
-        // ...und DANN den Status. Erst jetzt findet die Matrix-Engine
-        // den Task UND sein Gewicht gleichzeitig im Speicher.
-        set("^TASK.001.STATUS", "OPEN")
+        // 2) Branchenspezifische Brigade + Tasks laden
+        switch branche {
+        case .kueche:     seedKueche()
+        case .pflege:     seedPflege()
+        case .baustelle:  seedBaustelle()
+        case .produktion: seedProduktion()
+        }
 
-        // 3) ChefIQ Zusatz-Infos (HACCP / Medizinische Pins)
-        set("^TASK.001.PINS.MEDICAL", "BE: 0.1 | kcal: 145 | ALLERGEN: D")
-        set("^TASK.001.PINS.SOP", "Wässerung: 12h bei < 4°C. Wasser 2x wechseln.")
-        
-        // 4) System-Status Zündung
+        // 3) System-Status Zündung
         set("^SYS.STATUS", "KERNEL ONLINE")
 
-        // 5) Schicht-Start registrieren (BourdainGuard Gen 3)
+        // 4) Schicht-Start registrieren (BourdainGuard Gen 3)
         kernelQueue.sync { storage["^SYS.SHIFT_START"] = Date() }
-        
-        // 6) Guard-System initialisieren (KernelGuards Gen 3)
-        set("^SYS.SECURITY_LEVEL", "standard")  // Standard-Modus beim Boot
-        set("^SYS.ADMIN_REQUEST_COUNT", 0)      // Keine Admin-Abfragen beim Start
+
+        // 5) Guard-System initialisieren (KernelGuards Gen 3)
+        set("^SYS.SECURITY_LEVEL", "standard")
+        set("^SYS.ADMIN_REQUEST_COUNT", 0)
         
         // 7) Boot-Nachweis versiegeln (Pre-Flight Check)
         let checkResults = kernelSelfCheck()
@@ -665,6 +664,92 @@ final class TheBrain {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             print("iMOPS-KERNEL: Labor-Seed abgeschlossen. Matrix-Score: \(self.meierScore)")
             print("iMOPS-KERNEL: Boot-Nachweis: \(passed)/\(total) — \(allPassed ? "BESTANDEN" : "FEHLGESCHLAGEN")")
+            print("iMOPS-KERNEL: Branche: \(branche.displayName)")
+        }
+    }
+
+    // MARK: - Branchen-Seeds
+
+    private func seedKueche() {
+        set("^BRIGADE.HARRY.NAME", "Harry Meier")
+        set("^BRIGADE.HARRY.ROLE", "Gardemanger")
+        set("^BRIGADE.LUKAS.NAME", "Lukas")
+        set("^BRIGADE.LUKAS.ROLE", "Runner")
+
+        set("^TASK.001.TITLE", "MATJES WÄSSERN")
+        set("^TASK.001.CREATED", Date().timeIntervalSince1970)
+        set("^TASK.001.WEIGHT", 5)
+        set("^TASK.001.STATUS", "OPEN")
+        set("^TASK.001.PINS.MEDICAL", "BE: 0.1 | kcal: 145 | ALLERGEN: D")
+        set("^TASK.001.PINS.SOP", "Wässerung: 12h bei < 4°C. Wasser 2x wechseln.")
+    }
+
+    private func seedPflege() {
+        set("^BRIGADE.ANNA.NAME", "Anna S.")
+        set("^BRIGADE.ANNA.ROLE", "Pflegefachkraft")
+        set("^BRIGADE.MAX.NAME", "Max T.")
+        set("^BRIGADE.MAX.ROLE", "Betreuer")
+
+        set("^TASK.001.TITLE", "MEDIKATION STATION 3")
+        set("^TASK.001.CREATED", Date().timeIntervalSince1970)
+        set("^TASK.001.WEIGHT", 8)
+        set("^TASK.001.STATUS", "OPEN")
+        set("^TASK.001.PINS.MEDICAL", "Insulin 12 IE | Kontrolle BZ vor Gabe")
+        set("^TASK.001.PINS.SOP", "5-R-Regel prüfen. Doppelcheck bei BTM.")
+    }
+
+    private func seedBaustelle() {
+        set("^BRIGADE.STEFAN.NAME", "Stefan K.")
+        set("^BRIGADE.STEFAN.ROLE", "Vorarbeiter")
+        set("^BRIGADE.TIMO.NAME", "Timo R.")
+        set("^BRIGADE.TIMO.ROLE", "Maurer")
+
+        set("^TASK.001.TITLE", "GERÜSTPRÜFUNG ABSCHNITT B")
+        set("^TASK.001.CREATED", Date().timeIntervalSince1970)
+        set("^TASK.001.WEIGHT", 9)
+        set("^TASK.001.STATUS", "OPEN")
+        set("^TASK.001.PINS.MEDICAL", "PSA: Helm, Gurt, Handschuhe | Windstärke < 6")
+        set("^TASK.001.PINS.SOP", "DGUV Vorschrift 38. Sichtprüfung + Protokoll.")
+    }
+
+    private func seedProduktion() {
+        set("^BRIGADE.PETRA.NAME", "Petra M.")
+        set("^BRIGADE.PETRA.ROLE", "Maschinenbediener")
+        set("^BRIGADE.JENS.NAME", "Jens W.")
+        set("^BRIGADE.JENS.ROLE", "Qualitätsprüfer")
+
+        set("^TASK.001.TITLE", "CHARGE 2024-B12 FREIGABE")
+        set("^TASK.001.CREATED", Date().timeIntervalSince1970)
+        set("^TASK.001.WEIGHT", 7)
+        set("^TASK.001.STATUS", "OPEN")
+        set("^TASK.001.PINS.MEDICAL", "Charge: 2024-B12 | Stichprobe: 5/100 | Toleranz: ±0.2mm")
+        set("^TASK.001.PINS.SOP", "ISO 9001 Prüfprotokoll. Freigabe durch QA.")
+    }
+}
+
+// MARK: - Branchen-Auswahl
+
+enum Branche: String, CaseIterable {
+    case kueche = "KUECHE"
+    case pflege = "PFLEGE"
+    case baustelle = "BAUSTELLE"
+    case produktion = "PRODUKTION"
+
+    var displayName: String {
+        switch self {
+        case .kueche:     return "KÜCHE"
+        case .pflege:     return "PFLEGE"
+        case .baustelle:  return "BAUSTELLE"
+        case .produktion: return "PRODUKTION"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .kueche:     return "flame"
+        case .pflege:     return "heart.text.clipboard"
+        case .baustelle:  return "hammer"
+        case .produktion: return "gearshape.2"
         }
     }
 }

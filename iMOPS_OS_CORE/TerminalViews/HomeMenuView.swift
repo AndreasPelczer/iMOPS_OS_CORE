@@ -23,10 +23,23 @@ struct HomeMenuView: View {
                     // Pulsieren nur bei kritischem Score
                     .opacity(brain.meierScore > 60 ? pulseOpacity : 1.0)
                 
-                Text(brain.meierScore > 60 ? "!! CRITICAL LOAD !!" : "KERNEL_26 // OMNI_GRID")
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                    .tracking(2)
-                    .foregroundColor(brain.meierScore > 60 ? .red : .orange)
+                if brain.meierScore > 60 {
+                    Text("!! CRITICAL LOAD !!")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .tracking(2)
+                        .foregroundColor(.red)
+                } else if let brancheRaw: String = iMOPS.GET(.sys("BRANCHE")),
+                          let branche = Branche(rawValue: brancheRaw) {
+                    Text("KERNEL_26 // \(branche.displayName)")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .tracking(2)
+                        .foregroundColor(.orange)
+                } else {
+                    Text("KERNEL_26 // OMNI_GRID")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .tracking(2)
+                        .foregroundColor(.orange)
+                }
             }
             .padding(.top, 60)
             .onAppear {

@@ -27,6 +27,9 @@ struct RootTerminalView: View {
             let location: String = iMOPS.GET(.nav("LOCATION")) ?? "HOME"
 
             switch location {
+            case "BRANCH_SELECT":
+                BranchSelectView()
+
             case "HOME":
                 HomeMenuView(guardReport: guardReport)
 
@@ -128,14 +131,17 @@ struct EmployeeRow: View {
 }
 
 struct EmployeeTerminalView: View {
+    @State private var brain = TheBrain.shared
+
     var body: some View {
         VStack(spacing: 20) {
             Text("BRIGADE LOG-IN")
                 .font(.headline)
                 .foregroundColor(.orange)
 
-            EmployeeRow(id: "HARRY")
-            EmployeeRow(id: "LUKAS")
+            ForEach(brain.getBrigadeIDs(), id: \.self) { id in
+                EmployeeRow(id: id)
+            }
 
             Button("ZURÜCK") { iMOPS.GOTO("HOME") }
                 .padding()
@@ -144,6 +150,58 @@ struct EmployeeTerminalView: View {
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black)
+    }
+}
+
+// MARK: - Branchen-Auswahl
+
+struct BranchSelectView: View {
+    @State private var brain = TheBrain.shared
+
+    var body: some View {
+        VStack(spacing: 30) {
+            Spacer()
+
+            Text("iMOPS OS")
+                .font(.system(size: 32, weight: .black, design: .monospaced))
+                .foregroundColor(.white)
+
+            Text("BRANCHE WÄHLEN")
+                .font(.system(size: 14, design: .monospaced))
+                .foregroundColor(.orange)
+
+            VStack(spacing: 16) {
+                ForEach(Branche.allCases, id: \.self) { branche in
+                    Button(action: {
+                        brain.seed(branche: branche)
+                        iMOPS.GOTO("HOME")
+                    }) {
+                        HStack {
+                            Image(systemName: branche.icon)
+                                .frame(width: 30)
+                            Text(branche.displayName)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                        }
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                        .padding()
+                        .background(Color.white.opacity(0.08))
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+
+            Spacer()
+
+            Text("EIN KERNEL. JEDE BRANCHE.")
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundColor(.white.opacity(0.3))
+                .padding(.bottom, 20)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.ignoresSafeArea())
     }
 }
 
