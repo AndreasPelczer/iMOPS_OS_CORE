@@ -18,6 +18,7 @@ struct CommanderView: View {
     @State private var showShareSheet = false
     @State private var exportText = ""
     @State private var showExportView = false
+    @State private var showSelfCheck = false
 
     // Killswitch-Sicherung (Roman-Anker: Joshua)
     @State private var killswitchEngaged = false
@@ -73,16 +74,30 @@ struct CommanderView: View {
             // --- COMMANDS ---
             VStack(spacing: 0) {
                 if !killswitchEngaged {
-                    Button(action: { showExportView = true }) {
-                        HStack {
-                            Image(systemName: "square.and.arrow.up")
-                            Text("EXPORT")
+                    HStack(spacing: 0) {
+                        Button(action: { showExportView = true }) {
+                            HStack {
+                                Image(systemName: "square.and.arrow.up")
+                                Text("EXPORT")
+                            }
+                            .font(.system(size: 14, weight: .bold, design: .monospaced))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.orange.opacity(0.2))
+                            .foregroundColor(.orange)
                         }
-                        .font(.system(size: 14, weight: .bold, design: .monospaced))
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.orange.opacity(0.2))
-                        .foregroundColor(.orange)
+
+                        Button(action: { showSelfCheck = true }) {
+                            HStack {
+                                Image(systemName: "checkmark.shield")
+                                Text("SELF-CHECK")
+                            }
+                            .font(.system(size: 14, weight: .bold, design: .monospaced))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.cyan.opacity(0.2))
+                            .foregroundColor(.cyan)
+                        }
                     }
                 }
 
@@ -107,6 +122,9 @@ struct CommanderView: View {
         .background(Color.black.ignoresSafeArea())
         .sheet(isPresented: $showExportView) {
             ExportView()
+        }
+        .sheet(isPresented: $showSelfCheck) {
+            SelfCheckView()
         }
         .sheet(isPresented: $showShareSheet) {
             ShareSheet(activityItems: [exportText])
@@ -283,6 +301,87 @@ struct ArchiveRow: View {
         .padding()
         .background(Color.white.opacity(0.04))
         .id("row-\(id)-\(brain.meierScore)")
+    }
+}
+
+// MARK: - Self-Check View (Kernel-Integritaetspruefung)
+
+struct SelfCheckView: View {
+    @State private var results: [TheBrain.CheckResult] = []
+    @State private var hasRun = false
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if !hasRun {
+                    Section {
+                        Button(action: { runCheck() }) {
+                            Label("Kernel-Selbsttest starten", systemImage: "play.fill")
+                                .font(.headline)
+                        }
+                    }
+                } else {
+                    // Zusammenfassung
+                    let passed = results.filter { $0.passed }.count
+                    let total = results.count
+                    Section("Ergebnis") {
+                        HStack {
+                            Image(systemName: passed == total
+                                  ? "checkmark.seal.fill" : "xmark.seal.fill")
+                                .foregroundColor(passed == total ? .green : .red)
+                                .font(.title)
+                            VStack(alignment: .leading) {
+                                Text("\(passed)/\(total) bestanden")
+                                    .font(.headline)
+                                Text(passed == total
+                                     ? "Kernel-Integritaet verifiziert"
+                                     : "WARNUNG: Integritaet kompromittiert")
+                                    .font(.caption)
+                                    .foregroundColor(passed == total ? .green : .red)
+                            }
+                        }
+                    }
+
+                    // Einzelergebnisse
+                    Section("Pruefschritte") {
+                        ForEach(results) { result in
+                            HStack {
+                                Image(systemName: result.passed
+                                      ? "checkmark.circle.fill"
+                                      : "xmark.circle.fill")
+                                    .foregroundColor(result.passed ? .green : .red)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(result.name)
+                                        .font(.system(.body, design: .monospaced))
+                                    Text(result.detail)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+
+                    // Nochmal starten
+                    Section {
+                        Button(action: { runCheck() }) {
+                            Label("Erneut pruefen", systemImage: "arrow.clockwise")
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Kernel Self-Check")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Schliessen") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func runCheck() {
+        results = TheBrain.shared.kernelSelfCheck()
+        hasRun = true
     }
 }
 

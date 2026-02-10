@@ -397,6 +397,189 @@ final class TheBrain {
         return (ids, snapshot, effectiveLevel)
     }
 
+    // MARK: - Kernel Self-Check
+
+    /// Ergebnis eines einzelnen Pruefschritts
+    struct CheckResult: Identifiable {
+        let id = UUID()
+        let name: String
+        let passed: Bool
+        let detail: String
+    }
+
+    /// Fuehrt einen vollstaendigen Kernel-Selbsttest durch.
+    /// Prueft alle Guards, die DSGVO-Konformitaet und die Kernel-Integritaet.
+    /// Laeuft in der App — kein Xcode noetig.
+    func kernelSelfCheck() -> [CheckResult] {
+        var results: [CheckResult] = []
+
+        // 1. SecurityLevel: Genau 2 Cases
+        let slCount = SecurityLevel.allCases.count
+        results.append(CheckResult(
+            name: "SecurityLevel Cases",
+            passed: slCount == 2,
+            detail: slCount == 2
+                ? "Genau 2 Stufen (.standard, .deEscalation)"
+                : "FEHLER: \(slCount) Stufen gefunden statt 2"
+        ))
+
+        // 2. SecurityLevel: De-Eskalation aktiviert Shield
+        results.append(CheckResult(
+            name: "De-Eskalation Shield",
+            passed: SecurityLevel.deEscalation.isShieldActive,
+            detail: SecurityLevel.deEscalation.isShieldActive
+                ? "Shield aktiv bei De-Eskalation"
+                : "FEHLER: Shield nicht aktiv"
+        ))
+
+        // 3. Rio Reiser Jitter: Clamping 0.0...1.0
+        var jitterOK = true
+        for _ in 0..<100 {
+            let v = MenschMeierModus.applyRioReiserJitter(value: 0.5)
+            if v < 0.0 || v > 1.0 { jitterOK = false; break }
+        }
+        results.append(CheckResult(
+            name: "Jitter Clamping",
+            passed: jitterOK,
+            detail: jitterOK
+                ? "100 Iterationen im Bereich 0.0...1.0"
+                : "FEHLER: Jitter ausserhalb der Grenzen"
+        ))
+
+        // 4. Jitter Amplitude <= 5%
+        var amplitudeOK = true
+        for _ in 0..<100 {
+            let v = MenschMeierModus.applyRioReiserJitter(value: 0.5)
+            if abs(v - 0.5) > 0.05 { amplitudeOK = false; break }
+        }
+        results.append(CheckResult(
+            name: "Jitter Amplitude",
+            passed: amplitudeOK,
+            detail: amplitudeOK
+                ? "Amplitude <= 5% (100 Iterationen)"
+                : "FEHLER: Amplitude ueberschreitet 5%"
+        ))
+
+        // 5. Anonymisierung: De-Eskalation gibt "Brigade"
+        let anon = MenschMeierModus.anonymizeForAdmin(
+            author: "Harry Meier", securityLevel: .deEscalation
+        )
+        results.append(CheckResult(
+            name: "Anonymisierung",
+            passed: anon == "Brigade",
+            detail: anon == "Brigade"
+                ? "De-Eskalation anonymisiert zu 'Brigade'"
+                : "FEHLER: Ergebnis ist '\(anon)' statt 'Brigade'"
+        ))
+
+        // 6. Privacy Shield: Schwelle bei > 50
+        let under = MenschMeierModus.shouldTriggerPrivacyShield(requestCount: 50)
+        let over = MenschMeierModus.shouldTriggerPrivacyShield(requestCount: 51)
+        results.append(CheckResult(
+            name: "Privacy Shield Schwelle",
+            passed: !under && over,
+            detail: !under && over
+                ? "Inaktiv bei 50, aktiv bei 51"
+                : "FEHLER: Schwelle nicht bei > 50"
+        ))
+
+        // 7. Allergen immer transparent
+        let allergenProtected = MenschMeierModus.isPrivacyShieldActive(priority: "allergen")
+        results.append(CheckResult(
+            name: "Allergen Transparenz",
+            passed: !allergenProtected,
+            detail: !allergenProtected
+                ? "Allergen-Schritte immer sichtbar"
+                : "FEHLER: Allergen wird geschuetzt (Lebensgefahr!)"
+        ))
+
+        // 8. BourdainGuard: Frische Schicht = .fresh
+        let freshLevel = BourdainGuard.checkWorkLifeBalance(startTime: Date())
+        results.append(CheckResult(
+            name: "BourdainGuard Fresh",
+            passed: freshLevel == .fresh,
+            detail: freshLevel == .fresh
+                ? "Neue Schicht ergibt .fresh"
+                : "FEHLER: Neue Schicht ergibt .\(freshLevel.rawValue)"
+        ))
+
+        // 9. BourdainGuard: 9h = .warning
+        let warningLevel = BourdainGuard.checkWorkLifeBalance(
+            startTime: Date().addingTimeInterval(-9 * 3600)
+        )
+        results.append(CheckResult(
+            name: "BourdainGuard 9h",
+            passed: warningLevel == .warning,
+            detail: warningLevel == .warning
+                ? "9h Schicht ergibt .warning"
+                : "FEHLER: 9h ergibt .\(warningLevel.rawValue)"
+        ))
+
+        // 10. BourdainGuard: 11h = .reset + Training
+        let resetLevel = BourdainGuard.checkWorkLifeBalance(
+            startTime: Date().addingTimeInterval(-11 * 3600)
+        )
+        results.append(CheckResult(
+            name: "BourdainGuard 11h",
+            passed: resetLevel == .reset && resetLevel.forceTrainingMode,
+            detail: resetLevel == .reset
+                ? "11h Schicht: .reset + Training erzwungen"
+                : "FEHLER: 11h ergibt .\(resetLevel.rawValue)"
+        ))
+
+        // 11. DSGVO: Archiv speichert ROLE, nicht USER
+        let snapshot: [String: Any] = kernelQueue.sync { storage }
+        let hasUser = snapshot.keys.contains { $0.hasPrefix("^ARCHIVE.") && $0.hasSuffix(".USER") }
+        let hasRole = snapshot.keys.contains { $0.hasPrefix("^ARCHIVE.") && $0.hasSuffix(".ROLE") }
+            || snapshot.keys.filter { $0.hasPrefix("^ARCHIVE.") }.isEmpty // Kein Archiv = OK
+        results.append(CheckResult(
+            name: "DSGVO Archiv",
+            passed: !hasUser,
+            detail: hasUser
+                ? "FEHLER: ^ARCHIVE.*.USER gefunden (personenbezogen!)"
+                : hasRole ? "Archiv nutzt ROLE statt USER" : "Archiv leer (OK)"
+        ))
+
+        // 12. Schicht-Start registriert
+        let shiftStart = snapshot["^SYS.SHIFT_START"] as? Date
+        results.append(CheckResult(
+            name: "Schicht-Start",
+            passed: shiftStart != nil,
+            detail: shiftStart != nil
+                ? "^SYS.SHIFT_START registriert"
+                : "FEHLER: Kein Schicht-Start im Kernel"
+        ))
+
+        // 13. KernelGuards Orchestrator funktioniert
+        let report = KernelGuards.evaluate(
+            schritte: getArbeitsschritte(),
+            securityLevel: .standard,
+            sessionStart: shiftStart ?? Date()
+        )
+        let terminalOK = report.terminalStatus.contains("SECURITY")
+            && report.terminalStatus.contains("FATIGUE")
+            && report.terminalStatus.contains("LOAD")
+        results.append(CheckResult(
+            name: "KernelGuards Orchestrator",
+            passed: terminalOK,
+            detail: terminalOK
+                ? "evaluate() liefert vollstaendigen Report"
+                : "FEHLER: terminalStatus unvollstaendig"
+        ))
+
+        // Ergebnis loggen
+        let passed = results.filter { $0.passed }.count
+        let total = results.count
+        print("iMOPS-SELFCHECK: \(passed)/\(total) Tests bestanden")
+        if passed < total {
+            for r in results where !r.passed {
+                print("iMOPS-SELFCHECK-FAIL: \(r.name) — \(r.detail)")
+            }
+        }
+
+        return results
+    }
+
     /// Holt alle versiegelten IDs aus dem Tresor (^ARCHIVE)
     func getArchiveIDs() -> [String] {
         let snapshot = kernelQueue.sync { storage }
