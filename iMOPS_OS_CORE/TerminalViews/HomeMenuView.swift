@@ -49,6 +49,13 @@ struct HomeMenuView: View {
                 }) {
                     RebelButton(title: "COMMANDER", icon: "terminal.fill", color: .blue)
                 }
+
+                // STAFF-GRID (Zero-Waste-Masterstroke)
+                Button(action: {
+                    iMOPS.GOTO("STAFF_GRID")
+                }) {
+                    RebelButton(title: "STAFF-GRID", icon: "leaf.fill", color: .green)
+                }
                 
                 // STRESS-SIMULATOR (Versteckter Knopf für den Commander)
                 Button(action: {

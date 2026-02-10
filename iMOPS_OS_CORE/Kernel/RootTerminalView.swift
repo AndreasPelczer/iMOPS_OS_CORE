@@ -39,6 +39,9 @@ struct RootTerminalView: View {
             case "COMMANDER":
                 CommanderView()
 
+            case "STAFF_GRID":
+                StaffGridView()
+
             default:
                 VStack(spacing: 12) {
                     Text("KERNEL ERROR")

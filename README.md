@@ -80,33 +80,60 @@ iMOPS provides:
 ## Features
 
 - In-memory kernel (no CoreData / SQL required)
-- Deterministic SET / GET data model
+- Deterministic SET / GET / KILL data model with type-safe DSL
 - Offline-first architecture
 - Immutable HACCP archive ("Tresor")
-- Timestamped audit trail
+- Timestamped audit trail with export function
 - Responsibility tracking
-- JOSHUA-Matrix workload scoring
-- Minimal UI layer
+- Pelczer-Matrix / JOSHUA-Matrix workload scoring (Meier-Score)
+- Score history (last 50 data points for load visualization)
+- KernelGuards: SecurityLevel escalation, Rio Reiser Jitter, BourdainGuard fatigue protection
+- Zero-waste masterstroke system (staff canteen redistribution)
+- Rush hour simulation for stress testing
+- Minimal UI layer with reactive stress visualization
 - Open Source (MIT)
 
 ---
 
 ## Architecture Overview
 
-Kernel structure:
+### Kernel Layer (`Kernel/`)
 
-- `TheBrain.swift` → memory engine (SET / GET / KILL)
-- `Syntax.swift` → hierarchical key logic
-- `TaskRepository.swift` → task abstraction
-- `HACCPVault.swift` → immutable archive
-- `JOSHUA-Matrix.swift` → workload calculation
-- `TerminalViews.swift` → minimal UI
+| File | Purpose |
+|------|---------|
+| `TheBrain.swift` | Memory engine (SET / GET / KILL), Pelczer-Matrix (Meier-Score), Score-History |
+| `Syntax.swift` | Type-safe DSL paths, BrainNamespace, iMOPS command syntax |
+| `TaskRepository.swift` | Task creation, HACCP archiving (immutable vault) |
+| `KernelGuards.swift` | SecurityLevel, MenschMeierModus (Rio Reiser Jitter), BourdainGuard (fatigue protection) |
+| `RootTerminalView.swift` | State-machine router based on `^NAV.LOCATION` |
+| `ProductionTaskView.swift` | Active task display with stress visualization |
+| `iMOPS_OS_COREApp.swift` | App entry point (kernel bootloader) |
 
-Flow:
+### UI Layer (`TerminalViews/`)
+
+| File | Purpose |
+|------|---------|
+| `HomeMenuView.swift` | Main menu, matrix display, stress pulse animation |
+| `CommanderView.swift` | HACCP archive viewer, audit trail export, killswitch |
+| `StaffGridView.swift` | Zero-waste masterstroke system, staff coordination |
+
+### Data Flow
 
 ```
-User Input → Kernel → Task State → Archive (sealed) → Metrics
+User Input → RootTerminalView (Router) → Brain.set() → Pelczer-Matrix calculation
+                                                      ↓
+                              archiveUpdateTrigger (SwiftUI refresh)
 ```
+
+### Kernel Namespaces
+
+| Prefix | Purpose |
+|--------|---------|
+| `^NAV` | Navigation state |
+| `^SYS` | System status |
+| `^TASK` | Active tasks |
+| `^ARCHIVE` | Completed, locked tasks (immutable HACCP vault) |
+| `^BRIGADE` | Staff information |
 
 No backend required. No cloud required. System continues working even without internet.
 
@@ -115,10 +142,20 @@ No backend required. No cloud required. System continues working even without in
 ## Example
 
 ```swift
-brain.set("task.42.title", "Cool soup")
-brain.set("task.42.status", "inProgress")
+// Direct kernel access (all paths require ^ prefix)
+let brain = TheBrain.shared
+brain.set("^TASK.042.TITLE", "Cool soup")
+brain.set("^TASK.042.WEIGHT", 10)
+brain.set("^TASK.042.STATUS", "OPEN")
 
-let title = brain.get("task.42.title")
+let title: String? = brain.get("^TASK.042.TITLE")
+
+// Or via type-safe DSL (recommended)
+iMOPS.SET(.task("042", "TITLE"), "Cool soup")
+iMOPS.SET(.task("042", "WEIGHT"), 10)
+iMOPS.SET(.task("042", "STATUS"), "OPEN")
+
+let title: String? = iMOPS.GET(.task("042", "TITLE"))
 ```
 
 Direct. Predictable. No hidden layers.
@@ -140,16 +177,24 @@ Data is not edited retroactively. History remains history.
 
 ---
 
-## JOSHUA-Matrix (Workload Score)
+## JOSHUA-Matrix / Pelczer-Matrix (Workload Score)
 
 Production errors rarely come from bad intentions. They come from overload.
 
-The matrix estimates stress level based on:
+The matrix estimates stress level (Meier-Score, 0–100) based on:
 
-- active tasks
-- interruptions
-- task complexity
-- concurrency
+- active tasks (weighted by individual task WEIGHT)
+- fatigue factor (time pressure: +10% load per hour of oldest open task)
+- staff capacity (brigade size: each member carries ~20 units)
+- jitter protection (random noise at critical levels > 80 to prevent individual tracking)
+
+The score drives real-time UI changes:
+
+| Score | State | Visual |
+|-------|-------|--------|
+| 0–40 | Stable | Green indicators |
+| 40–70 | Warning | Orange indicators |
+| 70–100 | Critical | Red pulse, stress background, alarm quotes |
 
 Result: A simple score that indicates risk of failure.
 
