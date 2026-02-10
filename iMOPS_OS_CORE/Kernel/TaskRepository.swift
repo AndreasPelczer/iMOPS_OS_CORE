@@ -67,13 +67,13 @@ struct TaskRepository {
             sealToArchive(id: id)
 
         case .abgenommen:
-            // Commander-Abnahme: Finaler Stempel
+            // Commander-Abnahme: Finaler Stempel (DSGVO-konform)
             let now = Date()
             let formatter = DateFormatter()
-            formatter.dateFormat = "HH:mm:ss.SSS"
-            iMOPS.SET(.archive(id, "ABGENOMMEN"), formatter.string(from: now))
-            iMOPS.SET(.archive(id, "ABGENOMMEN_VON"),
-                       iMOPS.GET(.nav("ACTIVE_USER")) as String? ?? "COMMANDER")
+            formatter.dateFormat = "HH"
+            let hour = formatter.string(from: now)
+            iMOPS.SET(.archive(id, "ABGENOMMEN"), "\(hour):00-\(hour):59")
+            iMOPS.SET(.archive(id, "ABGENOMMEN_VON"), "Commander")
             print("iMOPS-HACCP: Task \(id) vom Commander abgenommen.")
         }
     }
@@ -90,24 +90,39 @@ struct TaskRepository {
 
     /// Versiegelt einen Task im HACCP-Tresor.
     /// Diese Daten sind ab jetzt unantastbar fuer den operativen Betrieb.
+    ///
+    /// DSGVO-Konformitaet (Art. 25 Privacy by Design):
+    /// - Keine personenbezogenen Daten im Archiv (Rolle statt Name)
+    /// - Zeitstempel auf Stundenfenster reduziert (keine Leistungsverdichtung)
+    /// - HACCP-Rueckverfolgbarkeit bleibt vollstaendig erhalten
     private static func sealToArchive(id: String) {
         let now = Date()
+
+        // Stundenfenster statt Millisekunden (DSGVO Art. 5 Abs. 1 lit. c)
+        // "14:00-15:00" reicht fuer HACCP. Millisekunden ermoeglichen Leistungsmessung.
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss.SSS"
-        let timeString = formatter.string(from: now)
+        formatter.dateFormat = "HH"
+        let hour = formatter.string(from: now)
+        let timeWindow = "\(hour):00-\(hour):59"
 
         // 1) Daten-Snapshot aus dem Kernel ziehen
         let title: String = iMOPS.GET(.task(id, "TITLE")) ?? "UNBEKANNT"
-        let user: String = iMOPS.GET(.nav("ACTIVE_USER")) ?? "SYSTEM"
+
+        // Funktionale Zuordnung statt personenbezogener Identifikation:
+        // Wir speichern die ROLLE (Gardemanger, Runner), nicht den Namen.
+        // HACCP verlangt Rueckverfolgbarkeit, nicht persoenliche Zuordnung.
+        let userKey: String = iMOPS.GET(.nav("ACTIVE_USER")) ?? "SYSTEM"
+        let role: String = TheBrain.shared.get("^BRIGADE.\(userKey).ROLE") ?? "Brigade"
 
         // ChefIQ-Pins retten vor dem Loeschen
         let medical: String = iMOPS.GET(.task(id, "PINS.MEDICAL")) ?? "N/A"
         let sop: String = iMOPS.GET(.task(id, "PINS.SOP")) ?? "N/A"
 
         // 2) HACCP Tresor versiegeln (^ARCHIVE)
+        // Keine Namen, keine Millisekunden — nur funktionale Daten.
         iMOPS.SET(.archive(id, "TITLE"), title)
-        iMOPS.SET(.archive(id, "TIME"), timeString)
-        iMOPS.SET(.archive(id, "USER"), user)
+        iMOPS.SET(.archive(id, "TIME"), timeWindow)
+        iMOPS.SET(.archive(id, "ROLE"), role)
         iMOPS.SET(.archive(id, "MEDICAL_SNAPSHOT"), medical)
         iMOPS.SET(.archive(id, "SOP_REFERENCE"), sop)
 

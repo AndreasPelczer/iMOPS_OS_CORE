@@ -241,13 +241,25 @@ final class TheBrain {
         }
     }
 
-    /// Exportiert den gesamten Archiv-Bereich als Text.
+    /// Exportiert den Archiv-Bereich als Text.
     /// Revisionssicherer Snapshot für den Commander.
-    func exportLog() -> String {
+    ///
+    /// DSGVO-Konformitaet: Guards werden VOR Export angewendet.
+    /// Schutz darf nicht nur beim Anzeigen gelten,
+    /// sondern auch beim Verlassen des Systems.
+    func exportLog(securityLevel: SecurityLevel = .standard,
+                   adminRequestCount: Int = 0) -> String {
         let snapshot: [String: Any] = kernelQueue.sync { storage }
+
+        // Guard-Check VOR Export: PrivacyShield pruefen
+        let shieldActive = MenschMeierModus.shouldTriggerPrivacyShield(
+            requestCount: adminRequestCount
+        )
+        let effectiveLevel: SecurityLevel = shieldActive ? .deEscalation : securityLevel
 
         var log = "--- iMOPS HACCP EXPORT ---\n"
         log += "Timestamp: \(Date().description)\n"
+        log += "Security: \(effectiveLevel.displayName)\n"
         log += "--------------------------\n\n"
 
         let archiveKeys = snapshot.keys
@@ -255,7 +267,17 @@ final class TheBrain {
             .sorted()
 
         for key in archiveKeys {
-            log += "\(key): \(snapshot[key] ?? "")\n"
+            var value = "\(snapshot[key] ?? "")"
+
+            // Guard: Rollen-Felder bei De-Eskalation anonymisieren
+            if effectiveLevel == .deEscalation &&
+               (key.hasSuffix(".ROLE") || key.hasSuffix(".ABGENOMMEN_VON")) {
+                value = MenschMeierModus.anonymizeForAdmin(
+                    author: value, securityLevel: effectiveLevel
+                )
+            }
+
+            log += "\(key): \(value)\n"
         }
 
         log += "\n--- ENDE DER ÜBERTRAGUNG ---"

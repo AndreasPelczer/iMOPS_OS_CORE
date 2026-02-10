@@ -204,8 +204,8 @@ Only valid transitions are allowed. Invalid transitions are rejected with a kern
 
 When a task is completed, it is:
 
-- timestamped
-- assigned to a responsible person
+- timestamped (hour window, not milliseconds)
+- assigned by **role** (e.g. "Gardemanger"), not by personal name
 - archived with medical/SOP snapshots
 - locked (KILLTREE removes the active task)
 - optionally signed off by the Commander (`.abgenommen`)
@@ -213,6 +213,20 @@ When a task is completed, it is:
 This creates traceability, audit safety, legal defensibility, and inspection readiness.
 
 Data is not edited retroactively. History remains history.
+
+### DSGVO / Privacy by Design (Art. 25 DSGVO)
+
+The archive stores **functional data**, not personal data:
+
+| Stored | Not Stored | Reason |
+|--------|------------|--------|
+| `ROLE: "Gardemanger"` | ~~`USER: "Harry Meier"`~~ | Roles are not personal data (Art. 5 Abs. 1 lit. c) |
+| `TIME: "14:00-14:59"` | ~~`TIME: "14:23:07.442"`~~ | Hour windows prevent performance profiling |
+| `TITLE`, `SOP`, `MEDICAL` | — | Required for HACCP compliance |
+
+The export function (`exportLog()`) applies KernelGuards **before** data leaves the system. In de-escalation mode, even role assignments are anonymized to "Brigade".
+
+**Principle:** Protection applies at the point of storage AND at the point of export. No backdoors.
 
 ---
 
@@ -360,6 +374,15 @@ The kernel is intentionally simple and transparent to support reproducibility an
 - not an ERP
 
 It is a **local operational aid**. It supports people. It does not monitor them.
+
+This is not a claim — it is enforced by code:
+
+- No personal names in the HACCP archive (roles only)
+- No millisecond timestamps (hour windows only)
+- Jitter prevents individual tracking on aggregated scores
+- Privacy Shield auto-escalates when abuse patterns emerge
+- Export applies the same guards as the live system
+- Guard integrity tests prevent silent removal of protections
 
 ---
 
