@@ -17,6 +17,7 @@ import UIKit
 
 struct RootTerminalView: View {
     @State private var brain = TheBrain.shared
+    @State private var guardReport: GuardReport?
 
     var body: some View {
         ZStack {
@@ -27,7 +28,7 @@ struct RootTerminalView: View {
 
             switch location {
             case "HOME":
-                HomeMenuView()
+                HomeMenuView(guardReport: guardReport)
 
             case "BRIGADE_SELECT":
                 EmployeeTerminalView()
@@ -61,6 +62,37 @@ struct RootTerminalView: View {
         }
         // Animation bewusst aus (Terminal-Style: hartes Umschalten)
         .animation(.none, value: iMOPS.GET(.nav("LOCATION")) as String? ?? "HOME")
+        .onAppear {
+            refreshGuardReport()
+        }
+        .onChange(of: brain.meierScore) { _, _ in
+            refreshGuardReport()
+        }
+    }
+    
+    // MARK: - Guard Report Refresh
+    
+    private func refreshGuardReport() {
+        // Schicht-Start aus Kernel lesen
+        let shiftStart: Date = iMOPS.GET(.sys("SHIFT_START")) ?? Date()
+        
+        // Alle Tasks aus dem Kernel holen
+        let allTasks = brain.getArbeitsschritte()
+        
+        // SecurityLevel aus Kernel lesen (Default: .standard)
+        let securityLevelRaw: String = iMOPS.GET(.sys("SECURITY_LEVEL")) ?? "standard"
+        let securityLevel = SecurityLevel(rawValue: securityLevelRaw) ?? .standard
+        
+        // Admin Request Count aus Kernel lesen (Default: 0)
+        let adminRequestCount: Int = iMOPS.GET(.sys("ADMIN_REQUEST_COUNT")) ?? 0
+        
+        // Guards auswerten
+        guardReport = KernelGuards.evaluate(
+            schritte: allTasks,
+            securityLevel: securityLevel,
+            sessionStart: shiftStart,
+            adminRequestCount: adminRequestCount
+        )
     }
 }
 

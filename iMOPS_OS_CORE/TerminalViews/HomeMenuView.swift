@@ -6,6 +6,9 @@ struct HomeMenuView: View {
     
     // Animation-State für den Stress-Modus
     @State private var pulseOpacity: Double = 1.0
+    
+    // Guard Report von RootTerminalView
+    let guardReport: GuardReport?
 
     var body: some View {
         VStack(spacing: 50) {
@@ -31,6 +34,13 @@ struct HomeMenuView: View {
                 withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
                     pulseOpacity = 0.3
                 }
+            }
+            
+            // --- GUARD STATUS ANZEIGE ---
+            if let report = guardReport {
+                GuardStatusView(report: report)
+                    .padding(.horizontal, 30)
+                    .padding(.top, 10)
             }
             
             // --- DAS REBELLEN-COCKPIT ---
@@ -92,6 +102,13 @@ struct HomeMenuView: View {
             
             Spacer()
             
+            // --- WHISPER MESSAGE (BourdainGuard) ---
+            if let report = guardReport, let whisper = report.whisperMessage {
+                WhisperMessageView(message: whisper)
+                    .padding(.horizontal, 30)
+                    .padding(.bottom, 10)
+            }
+            
             // --- FUSSZEILE ---
             Text("NO SQL // NO LATENCY // NO POWER FOR NOBODY")
                 .font(.system(size: 10, design: .monospaced))
@@ -135,3 +152,92 @@ struct RebelButton: View {
         )
     }
 }
+// MARK: - Guard Status View
+
+struct GuardStatusView: View {
+    let report: GuardReport
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            // SecurityLevel Badge
+            HStack(spacing: 12) {
+                Image(systemName: report.securityLevel.sfSymbol)
+                    .foregroundColor(report.securityLevel == .standard ? .green : .orange)
+                
+                Text(report.securityLevel.displayName.uppercased())
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(report.securityLevel == .standard ? .green : .orange)
+                
+                // Privacy Shield Indikator
+                if report.privacyShieldActive {
+                    Image(systemName: "eye.slash.fill")
+                        .foregroundColor(.blue)
+                        .font(.system(size: 10))
+                }
+                
+                Spacer()
+                
+                // Fatigue Level
+                Image(systemName: report.fatigueLevel.sfSymbol)
+                    .foregroundColor(fatigueColor)
+                
+                // Training Mode Badge
+                if report.forceTrainingMode {
+                    Text("TRAINING")
+                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.purple)
+                        .cornerRadius(4)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.05))
+            .cornerRadius(8)
+        }
+    }
+    
+    private var fatigueColor: Color {
+        switch report.fatigueLevel {
+        case .fresh:   return .green
+        case .warning: return .orange
+        case .reset:   return .red
+        }
+    }
+}
+
+// MARK: - Whisper Message View
+
+struct WhisperMessageView: View {
+    let message: String
+    @State private var opacity: Double = 0.5
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "quote.bubble.fill")
+                .font(.system(size: 12))
+            
+            Text(message)
+                .font(.system(size: 11, design: .monospaced))
+                .lineLimit(3)
+                .multilineTextAlignment(.leading)
+        }
+        .foregroundColor(.orange.opacity(0.8))
+        .padding(12)
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
+        .opacity(opacity)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                opacity = 1.0
+            }
+        }
+    }
+}
+
