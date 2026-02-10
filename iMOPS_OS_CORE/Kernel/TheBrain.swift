@@ -94,13 +94,28 @@ final class TheBrain {
         // 3. Berechnung der Pelczer-Matrix (MMZ)
         var finalLoad = (Double(totalLoad) / systemCapacity) * fatigueFactor * 100
         
-        // 4. JITTER-LOGIK: Schutz des Individuums ("Joshua-Modus")
-        // Wenn der Stress kritisch wird, fügen wir Rauschen hinzu, um Tracking zu verhindern.
-        if finalLoad > 80 {
-            finalLoad += Double.random(in: -2...5)
+        // 4. BOURDAIN-GUARD (Gen 3): Ermüdungsschutz der Brigade
+        // Bei langer Schicht steigt die Grundlast automatisch (Altgesellen-Prinzip)
+        let shiftStart = storage["^SYS.SHIFT_START"] as? Date ?? Date()
+        let taskValidation = BourdainGuard.validateTaskAction(startTime: shiftStart)
+        switch BourdainGuard.checkWorkLifeBalance(startTime: shiftStart) {
+        case .warning: finalLoad *= 1.15  // +15% Last ab 8h
+        case .reset:   finalLoad *= 1.30  // +30% Last ab 10h
+        case .fresh:   break
         }
-        
-        let scoreResult = Int(min(max(finalLoad, 0), 100))
+
+        // 5. RIO-REISER-JITTER (Gen 3): Schutz des Individuums (MenschMeierModus)
+        // Jitter-Stärke skaliert mit Ermüdungslevel (Gen 3 BourdainGuard)
+        let normalizedLoad = min(max(finalLoad / 100.0, 0.0), 1.0)
+        let noise = Double.random(in: -taskValidation.jitterStrength...taskValidation.jitterStrength)
+        let jitteredLoad = min(max(normalizedLoad + noise, 0.0), 1.0) * 100.0
+
+        let scoreResult = Int(min(max(jitteredLoad, 0), 100))
+
+        // 6. WHISPER-MESSAGE: Flüsternde Warnung bei Ermüdung
+        if let whisper = taskValidation.whisper {
+            print("iMOPS-BOURDAIN: \(whisper)")
+        }
         
         // Zurück auf den Main-Thread für das UI-Feuerwerk und die Historie
         DispatchQueue.main.async {
@@ -277,6 +292,9 @@ final class TheBrain {
         
         // 4) System-Status Zündung
         set("^SYS.STATUS", "KERNEL ONLINE")
+
+        // 5) Schicht-Start registrieren (BourdainGuard Gen 3)
+        kernelQueue.sync { storage["^SYS.SHIFT_START"] = Date() }
         
         // --- DER TRICK FÜR DEN LOG ---
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
