@@ -121,7 +121,9 @@ struct StaffGridView: View {
         // Archivierung des Masterstrokes (HACCP & Moral-Check)
         let timestamp = Date().timeIntervalSince1970
         iMOPS.SET(.archive("MS_\(Int(timestamp))", "TITLE"), "ZERO-WASTE: Boeuf Bourguignon")
-        iMOPS.SET(.archive("MS_\(Int(timestamp))", "USER"), iMOPS.GET(.nav("ACTIVE_USER")) ?? "HARRY")
+        let userKey: String = iMOPS.GET(.nav("ACTIVE_USER")) ?? "SYSTEM"
+        let rolle: String = TheBrain.shared.get("^BRIGADE.\(userKey).ROLE") ?? "Brigade"
+        iMOPS.SET(.archive("MS_\(Int(timestamp))", "ROLE"), rolle)
         
         showingMasterstrokeAlert = true
         
