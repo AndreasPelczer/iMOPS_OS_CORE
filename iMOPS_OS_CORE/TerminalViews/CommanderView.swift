@@ -22,6 +22,10 @@ struct CommanderView: View {
 
     // Killswitch-Sicherung (Roman-Anker: Joshua)
     @State private var killswitchEngaged = false
+    
+    // Guard-System (Kernel 3.0)
+    @State private var guardReport: GuardReport?
+    @State private var showGuardDetails = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,6 +39,24 @@ struct CommanderView: View {
                         .foregroundColor(.blue)
                 }
                 Spacer()
+                
+                // Guard-Status Button (Kernel 3.0)
+                Button(action: { 
+                    withAnimation { showGuardDetails.toggle() }
+                }) {
+                    HStack(spacing: 4) {
+                        if let report = guardReport {
+                            Image(systemName: report.securityLevel.sfSymbol)
+                                .foregroundColor(report.securityLevel.isShieldActive ? .orange : .green)
+                            Image(systemName: report.fatigueLevel.sfSymbol)
+                                .foregroundColor(fatigueColor(report.fatigueLevel))
+                        } else {
+                            Image(systemName: "shield.slash")
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .font(.system(size: 10, design: .monospaced))
+                }
 
                 // Status-Indikator basierend auf der Pelczer-Matrix
                 let isCritical = brain.meierScore > 80
@@ -51,6 +73,12 @@ struct CommanderView: View {
             // --- TRESOR-LISTE: DIE UNBESTECHLICHE WAHRHEIT ---
             ScrollView {
                 VStack(spacing: 2) {
+                    // Guard-Details Panel (Kernel 3.0)
+                    if showGuardDetails, let report = guardReport {
+                        GuardDetailsPanel(report: report)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                    
                     let _ = brain.meierScore
                     let ids = brain.getArchiveIDs()
 
@@ -128,6 +156,37 @@ struct CommanderView: View {
         }
         .sheet(isPresented: $showShareSheet) {
             ShareSheet(activityItems: [exportText])
+        }
+        .onAppear {
+            evaluateGuards()
+        }
+        .onChange(of: brain.meierScore) { _, _ in
+            evaluateGuards()
+        }
+    }
+    
+    // MARK: - Guard Evaluation (Kernel 3.0)
+    
+    private func evaluateGuards() {
+        let schritte = brain.getArbeitsschritte()
+        
+        // Type-safe Abruf aus dem Kernel (Compiler braucht explizite Typen)
+        let sessionStart: Date = iMOPS.GET(.sys("SHIFT_START")) ?? Date()
+        let securityLevel: SecurityLevel = iMOPS.GET(.sys("SECURITY_LEVEL")) ?? .standard
+        
+        guardReport = KernelGuards.evaluate(
+            schritte: schritte,
+            securityLevel: securityLevel,
+            sessionStart: sessionStart,
+            adminRequestCount: 0
+        )
+    }
+    
+    private func fatigueColor(_ level: BourdainGuard.FatigueLevel) -> Color {
+        switch level {
+        case .fresh:   return .green
+        case .warning: return .orange
+        case .reset:   return .red
         }
     }
 }
@@ -396,3 +455,109 @@ struct ShareSheet: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
+// MARK: - GuardDetailsPanel (Kernel 3.0)
+
+struct GuardDetailsPanel: View {
+    let report: GuardReport
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("KERNEL GUARDS AKTIV")
+                .font(.system(size: 10, weight: .black, design: .monospaced))
+                .foregroundColor(.orange)
+            
+            Divider().background(Color.white.opacity(0.2))
+            
+            HStack(spacing: 16) {
+                // Security Level
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Image(systemName: report.securityLevel.sfSymbol)
+                        Text("SECURITY")
+                    }
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundColor(.gray)
+                    
+                    Text(report.securityLevel.displayName)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(report.securityLevel.isShieldActive ? .orange : .green)
+                }
+                
+                // Fatigue Level
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Image(systemName: report.fatigueLevel.sfSymbol)
+                        Text("FATIGUE")
+                    }
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundColor(.gray)
+                    
+                    Text(report.fatigueLevel.rawValue.uppercased())
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(fatigueColor(report.fatigueLevel))
+                }
+                
+                // Brigade Load
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "gauge")
+                        Text("BRIGADE")
+                    }
+                    .font(.system(size: 8, design: .monospaced))
+                    .foregroundColor(.gray)
+                    
+                    Text("\(Int(report.brigadeLoad * 100))%")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(.cyan)
+                }
+            }
+            
+            // Status Flags
+            HStack(spacing: 8) {
+                if report.privacyShieldActive {
+                    Label("PRIVACY SHIELD", systemImage: "shield.fill")
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundColor(.orange)
+                }
+                
+                if report.forceTrainingMode {
+                    Label("TRAINING MODE", systemImage: "bolt.heart.fill")
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundColor(.red)
+                }
+            }
+            
+            // Whisper Message
+            if let whisper = report.whisperMessage {
+                Divider().background(Color.white.opacity(0.2))
+                
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.system(size: 8))
+                        .foregroundColor(.yellow)
+                    Text(whisper)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundColor(.yellow)
+                        .italic()
+                }
+            }
+        }
+        .padding(12)
+        .background(Color.orange.opacity(0.1))
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
+        .padding(.horizontal)
+        .padding(.top, 8)
+    }
+    
+    private func fatigueColor(_ level: BourdainGuard.FatigueLevel) -> Color {
+        switch level {
+        case .fresh:   return .green
+        case .warning: return .orange
+        case .reset:   return .red
+        }
+    }
+}
+
