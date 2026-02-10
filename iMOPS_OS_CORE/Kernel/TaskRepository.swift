@@ -129,7 +129,7 @@ struct TaskRepository {
         // 3) Den aktiven Arbeitsplatz (Subtree) loeschen
         iMOPS.KILLTREE(.task(id, ""))
 
-        print("iMOPS-HACCP: Task \(id) inklusive ChefIQ-Daten versiegelt um \(timeString). ;=)")
+        print("iMOPS-HACCP: Task \(id) inklusive ChefIQ-Daten versiegelt um \(timeWindow). ;=)")
 
         // 4) Automatische Rueckkehr zum Auswahl-Bildschirm
         iMOPS.GOTO("BRIGADE_SELECT")
