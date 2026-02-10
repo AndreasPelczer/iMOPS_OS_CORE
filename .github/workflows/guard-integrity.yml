@@ -1,0 +1,55 @@
+# iMOPS_OS_CORE — Guard Integrity CI
+#
+# Wenn diese Tests fehlschlagen, ist das System kompromittiert.
+# Kein Merge. Kein Deploy. Kein Verhandeln.
+
+name: Guard Integrity
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  guard-check:
+    name: Build + Guard Tests
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+
+      - name: Build
+        run: |
+          xcodebuild build \
+            -scheme iMOPS_OS_CORE \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -quiet
+
+      - name: Guard Integrity Tests
+        run: |
+          xcodebuild test \
+            -scheme iMOPS_OS_CORE \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -resultBundlePath TestResults.xcresult \
+            | tee test_output.txt
+
+      - name: Verify All Guards Passed
+        if: always()
+        run: |
+          if grep -q "Test Suite.*failed" test_output.txt 2>/dev/null; then
+            echo "::error::GUARD INTEGRITY COMPROMISED — Tests failed. No deploy."
+            exit 1
+          fi
+          echo "All guard integrity tests passed."
+
+      - name: Upload Test Results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults.xcresult
