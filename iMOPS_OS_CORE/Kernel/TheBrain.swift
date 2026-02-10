@@ -640,10 +640,31 @@ final class TheBrain {
         set("^SYS.SECURITY_LEVEL", "standard")  // Standard-Modus beim Boot
         set("^SYS.ADMIN_REQUEST_COUNT", 0)      // Keine Admin-Abfragen beim Start
         
+        // 7) Boot-Nachweis versiegeln (Pre-Flight Check)
+        let checkResults = kernelSelfCheck()
+        let passed = checkResults.filter { $0.passed }.count
+        let total = checkResults.count
+        let allPassed = passed == total
+
+        let bootFormatter = DateFormatter()
+        bootFormatter.dateFormat = "HH"
+        let bootHour = bootFormatter.string(from: Date())
+        let bootZeitfenster = "\(bootHour):00-\(bootHour):59"
+
+        let details = checkResults.map { "\($0.name):\($0.passed ? "OK" : "FAIL")" }.joined(separator: "|")
+
+        set("^ARCHIVE.BOOT_CHECK.TITLE", "KERNEL BOOT-NACHWEIS")
+        set("^ARCHIVE.BOOT_CHECK.TIME", bootZeitfenster)
+        set("^ARCHIVE.BOOT_CHECK.ROLE", "SYSTEM")
+        set("^ARCHIVE.BOOT_CHECK.RESULT", allPassed ? "BESTANDEN" : "FEHLGESCHLAGEN")
+        set("^ARCHIVE.BOOT_CHECK.PASSED", passed)
+        set("^ARCHIVE.BOOT_CHECK.TOTAL", total)
+        set("^ARCHIVE.BOOT_CHECK.DETAILS", details)
+
         // --- DER TRICK FÜR DEN LOG ---
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             print("iMOPS-KERNEL: Labor-Seed abgeschlossen. Matrix-Score: \(self.meierScore)")
-            print("iMOPS-MATRIX: Harrys Belastung erkannt. System bereit für Service-Druck.")
+            print("iMOPS-KERNEL: Boot-Nachweis: \(passed)/\(total) — \(allPassed ? "BESTANDEN" : "FEHLGESCHLAGEN")")
         }
     }
 }
