@@ -60,40 +60,20 @@ Alles in einer Datei: `KernelGuards.swift`
   Alle drei wenden DSGVO-Guards an (PrivacyShield + SecurityLevel).
   `prepareExport()` ist die gemeinsame Guard-Vorbereitung. NICHT AENDERN.
 - `ArchiveRow` liest `^ARCHIVE.*.ROLE` (nicht USER). NICHT AENDERN.
+- **KernelGuards.evaluate() ist in die UI verdrahtet (ERLEDIGT):**
+  - `HomeMenuView`: Guard-Status-Zeile (SecurityLevel, Fatigue, Privacy Shield,
+    Training Mode, Whisper Message). `.onAppear { evaluateGuards() }`
+  - `ProductionTaskView`: BourdainGuard Fatigue-Anzeige im Header,
+    Whisper Message am unteren Rand. `.onAppear { evaluateGuards() }`
+  - `CommanderView`: Guard-Status im Header, `brain.incrementAdminRequest()`
+    bei jedem Zugriff. `.onAppear { evaluateGuards() }`
+  - `TheBrain.adminRequestCount`: Zaehler fuer Privacy Shield (> 50 triggert)
+  - `StaffGridView`: DSGVO-Fix (ROLE statt USER, Stundenfenster im Archiv)
 
-## DEIN AUFTRAG: Guards in die UI verdrahten
+## Status: KERN KOMPLETT
 
-`KernelGuards.evaluate()` wird derzeit nirgends im App-Flow aufgerufen.
-Die Guards existieren, sind getestet, aber die UI reagiert nicht darauf.
-
-### Was du tun sollst:
-
-1. **GuardReport beim View-Load abrufen**
-   - In `RootTerminalView` oder den einzelnen Views: beim Erscheinen
-     `KernelGuards.evaluate()` aufrufen
-   - Das Ergebnis (`GuardReport`) fuer UI-Entscheidungen verwenden
-   - Schicht-Start aus `^SYS.SHIFT_START` lesen
-
-2. **SecurityLevel in der UI anzeigen**
-   - `report.securityLevel.sfSymbol` und `report.securityLevel.displayName`
-     sichtbar machen (z.B. in der HomeMenuView oder als Status-Zeile)
-
-3. **BourdainGuard Whisper in der UI anzeigen**
-   - Wenn `report.whisperMessage != nil`: sanfte Anzeige (kein Alert, kein Popup)
-   - Vorschlag: dezenter Text am unteren Bildschirmrand oder im Terminal-Stil
-   - Whisper ist eine Empfehlung, kein Befehl
-
-4. **Privacy Shield Status anzeigen**
-   - Wenn `report.privacyShieldActive`: visueller Hinweis (z.B. Shield-Icon)
-
-5. **Training Mode anzeigen**
-   - Wenn `report.forceTrainingMode`: UI-Hinweis dass Praezisionsmodus aktiv ist
-
-6. **Export: SecurityLevel + adminRequestCount durchreichen**
-   - Die ExportView ruft `brain.exportLog()`, `brain.exportCSV()`,
-     `brain.exportJSON()` bereits korrekt auf (Default-Parameter).
-   - OPTIONAL: Wenn du einen adminRequestCount-Zaehler einfuehrst,
-     diesen an die Export-Methoden weitergeben.
+Der Kern ist rund. Alle Guards sind aktiv, getestet, und in der UI sichtbar.
+ExportView, SelfCheckView, und Guard-UI-Integration sind fertig.
 
 ### Was du NICHT tun darfst:
 
