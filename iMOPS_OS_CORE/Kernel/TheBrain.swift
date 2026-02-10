@@ -45,6 +45,16 @@ final class TheBrain {
     /// Speichert die letzten 50 Belastungsänderungen für die Fieberkurve.
     var scoreHistory: [MatrixPoint] = []
 
+    /// Admin-Anfragen-Zaehler (Privacy Shield)
+    /// Wird bei jedem Commander/Export-Zugriff inkrementiert.
+    /// Bei > 50 triggert der Privacy Shield automatisch.
+    private(set) var adminRequestCount: Int = 0
+
+    /// Inkrementiert den Admin-Request-Zaehler.
+    func incrementAdminRequest() {
+        adminRequestCount += 1
+    }
+
     /// Kernel-Lock:
     /// Schützt den Store vor Race-Conditions, wenn am Pass das Chaos ausbricht.
     private let kernelQueue = DispatchQueue(label: "imops.kernel.queue", qos: .userInitiated)

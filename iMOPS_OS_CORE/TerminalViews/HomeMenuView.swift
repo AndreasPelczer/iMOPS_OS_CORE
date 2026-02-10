@@ -3,9 +3,12 @@ import SwiftUI
 struct HomeMenuView: View {
     // Wir beobachten den Kernel direkt
     @State private var brain = TheBrain.shared
-    
+
     // Animation-State für den Stress-Modus
     @State private var pulseOpacity: Double = 1.0
+
+    // Guard-Report (Gen 3 Schutz-Stack)
+    @State private var guardReport: GuardReport?
 
     var body: some View {
         VStack(spacing: 50) {
@@ -91,7 +94,67 @@ struct HomeMenuView: View {
             .padding(.horizontal, 30)
             
             Spacer()
-            
+
+            // --- GUARD STATUS (Gen 3 Schutz-Stack) ---
+            if let report = guardReport {
+                VStack(spacing: 4) {
+                    // Zeile 1: Security + Fatigue + Shield
+                    HStack(spacing: 8) {
+                        // SecurityLevel
+                        Image(systemName: report.securityLevel.sfSymbol)
+                            .foregroundColor(report.securityLevel.isShieldActive ? .yellow : .green)
+                        Text(report.securityLevel.displayName.uppercased())
+                            .foregroundColor(report.securityLevel.isShieldActive ? .yellow : .green)
+
+                        Text("//")
+                            .foregroundColor(.white.opacity(0.3))
+
+                        // FatigueLevel
+                        Image(systemName: report.fatigueLevel.sfSymbol)
+                            .foregroundColor(report.fatigueLevel == .fresh ? .green
+                                : report.fatigueLevel == .warning ? .orange : .red)
+                        Text(report.fatigueLevel.rawValue.uppercased())
+                            .foregroundColor(report.fatigueLevel == .fresh ? .green
+                                : report.fatigueLevel == .warning ? .orange : .red)
+
+                        // Privacy Shield Indikator
+                        if report.privacyShieldActive {
+                            Text("//")
+                                .foregroundColor(.white.opacity(0.3))
+                            Image(systemName: "shield.lefthalf.filled")
+                                .foregroundColor(.yellow)
+                            Text("SHIELD")
+                                .foregroundColor(.yellow)
+                        }
+                    }
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+
+                    // Training Mode Warnung
+                    if report.forceTrainingMode {
+                        HStack(spacing: 4) {
+                            Image(systemName: "graduationcap.fill")
+                            Text("PRAEZISIONSMODUS ERZWUNGEN")
+                        }
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(.red)
+                    }
+
+                    // Whisper Message (dezent, kein Alert)
+                    if let whisper = report.whisperMessage {
+                        Text(whisper)
+                            .font(.system(size: 9, design: .serif))
+                            .italic()
+                            .foregroundColor(.orange.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 2)
+                    }
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .background(Color.white.opacity(0.03))
+            }
+
             // --- FUSSZEILE ---
             Text("NO SQL // NO LATENCY // NO POWER FOR NOBODY")
                 .font(.system(size: 10, design: .monospaced))
@@ -99,6 +162,7 @@ struct HomeMenuView: View {
                 .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear { evaluateGuards() }
         // Hintergrund färbt sich bei extremem Stress leicht rötlich ein
         .background(
             ZStack {
@@ -108,6 +172,19 @@ struct HomeMenuView: View {
                 }
             }
         )
+    }
+
+    // MARK: - Guard Evaluation
+
+    private func evaluateGuards() {
+        let shiftStart: Date = brain.get("^SYS.SHIFT_START") ?? Date()
+        let report = KernelGuards.evaluate(
+            schritte: brain.getArbeitsschritte(),
+            securityLevel: .standard,
+            sessionStart: shiftStart,
+            adminRequestCount: brain.adminRequestCount
+        )
+        guardReport = report
     }
 }
 

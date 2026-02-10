@@ -14,6 +14,7 @@ import SwiftUI
 struct ProductionTaskView: View {
     let userID: String
     @State private var brain = TheBrain.shared
+    @State private var guardReport: GuardReport?
 
     var body: some View {
         VStack(spacing: 20) {
@@ -33,10 +34,29 @@ struct ProductionTaskView: View {
                 Text("MEIER-SCORE: \(score)")
                     .font(.system(size: 12, weight: .black, design: .monospaced))
                     .foregroundColor(score > 70 ? .red : (score > 40 ? .orange : .green))
-            
+
             }
             .padding()
             .background(Color.white.opacity(0.05))
+
+            // BourdainGuard Status (Ermüdungsanzeige)
+            if let report = guardReport {
+                HStack(spacing: 6) {
+                    Image(systemName: report.fatigueLevel.sfSymbol)
+                    Text(report.fatigueLevel.rawValue.uppercased())
+
+                    if report.forceTrainingMode {
+                        Text("//")
+                            .foregroundColor(.white.opacity(0.3))
+                        Image(systemName: "graduationcap.fill")
+                        Text("PRAEZISION")
+                    }
+                }
+                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                .foregroundColor(report.fatigueLevel == .fresh ? .green
+                    : report.fatigueLevel == .warning ? .orange : .red)
+                .padding(.horizontal)
+            }
 
             Text("OFFENE AUFGABEN")
                 .font(.system(size: 20, weight: .black, design: .monospaced))
@@ -67,6 +87,16 @@ struct ProductionTaskView: View {
 
             Spacer()
 
+            // Whisper Message (BourdainGuard, dezent am unteren Rand)
+            if let whisper = guardReport?.whisperMessage {
+                Text(whisper)
+                    .font(.system(size: 9, design: .serif))
+                    .italic()
+                    .foregroundColor(.orange.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+            }
+
             // --- EXIT: LOGOUT ---
             Button("LOG OUT") {
                 iMOPS.GOTO("HOME") // Setzt ^NAV.LOCATION auf HOME
@@ -75,6 +105,7 @@ struct ProductionTaskView: View {
             .foregroundColor(.red)
             .padding()
         }
+        .onAppear { evaluateGuards() }
         .background(
             ZStack {
                 Color.black.ignoresSafeArea()
@@ -84,6 +115,19 @@ struct ProductionTaskView: View {
                 }
             }
         )
+    }
+
+    // MARK: - Guard Evaluation
+
+    private func evaluateGuards() {
+        let shiftStart: Date = brain.get("^SYS.SHIFT_START") ?? Date()
+        let report = KernelGuards.evaluate(
+            schritte: brain.getArbeitsschritte(),
+            securityLevel: .standard,
+            sessionStart: shiftStart,
+            adminRequestCount: brain.adminRequestCount
+        )
+        guardReport = report
     }
 }
 

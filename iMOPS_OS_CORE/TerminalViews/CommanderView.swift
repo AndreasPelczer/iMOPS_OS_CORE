@@ -19,6 +19,7 @@ struct CommanderView: View {
     @State private var exportText = ""
     @State private var showExportView = false
     @State private var showSelfCheck = false
+    @State private var guardReport: GuardReport?
 
     // Killswitch-Sicherung (Roman-Anker: Joshua)
     @State private var killswitchEngaged = false
@@ -30,9 +31,27 @@ struct CommanderView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("COMMANDER: HACCP-TRESOR")
                         .font(.system(size: 16, weight: .black, design: .monospaced))
-                    Text("IMMUTABLE RECORDS // KERNEL_26")
-                        .font(.system(size: 8, design: .monospaced))
-                        .foregroundColor(.blue)
+
+                    // Guard-Status Zeile
+                    if let report = guardReport {
+                        HStack(spacing: 4) {
+                            Image(systemName: report.securityLevel.sfSymbol)
+                            Text(report.securityLevel == .deEscalation ? "DE-ESK" : "STD")
+                            Text("//")
+                            Image(systemName: report.fatigueLevel.sfSymbol)
+                            Text(report.fatigueLevel.rawValue.uppercased())
+                            if report.privacyShieldActive {
+                                Text("//")
+                                Image(systemName: "shield.lefthalf.filled")
+                            }
+                        }
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .foregroundColor(report.securityLevel.isShieldActive ? .yellow : .blue)
+                    } else {
+                        Text("IMMUTABLE RECORDS // KERNEL_26")
+                            .font(.system(size: 8, design: .monospaced))
+                            .foregroundColor(.blue)
+                    }
                 }
                 Spacer()
 
@@ -120,6 +139,11 @@ struct CommanderView: View {
             }
         }
         .background(Color.black.ignoresSafeArea())
+        .onAppear {
+            // Admin-Zugriff zaehlen (Privacy Shield)
+            brain.incrementAdminRequest()
+            evaluateGuards()
+        }
         .sheet(isPresented: $showExportView) {
             ExportView()
         }
@@ -129,6 +153,19 @@ struct CommanderView: View {
         .sheet(isPresented: $showShareSheet) {
             ShareSheet(activityItems: [exportText])
         }
+    }
+
+    // MARK: - Guard Evaluation
+
+    private func evaluateGuards() {
+        let shiftStart: Date = brain.get("^SYS.SHIFT_START") ?? Date()
+        let report = KernelGuards.evaluate(
+            schritte: brain.getArbeitsschritte(),
+            securityLevel: .standard,
+            sessionStart: shiftStart,
+            adminRequestCount: brain.adminRequestCount
+        )
+        guardReport = report
     }
 }
 

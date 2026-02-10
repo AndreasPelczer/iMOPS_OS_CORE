@@ -119,9 +119,16 @@ struct StaffGridView: View {
         iMOPS.SET(.sys("KANTINE_SPECIAL"), "Boeuf Bourguignon (VIP-Qualität)")
         
         // Archivierung des Masterstrokes (HACCP & Moral-Check)
-        let timestamp = Date().timeIntervalSince1970
-        iMOPS.SET(.archive("MS_\(Int(timestamp))", "TITLE"), "ZERO-WASTE: Boeuf Bourguignon")
-        iMOPS.SET(.archive("MS_\(Int(timestamp))", "USER"), iMOPS.GET(.nav("ACTIVE_USER")) ?? "HARRY")
+        // DSGVO: Rolle statt Name, Stundenfenster statt Millisekunden
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH"
+        let hour = formatter.string(from: Date())
+        let archiveID = "MS_\(hour)\(Int(Date().timeIntervalSince1970) % 10000)"
+        iMOPS.SET(.archive(archiveID, "TITLE"), "ZERO-WASTE: Boeuf Bourguignon")
+        iMOPS.SET(.archive(archiveID, "TIME"), "\(hour):00-\(hour):59")
+        let userKey: String = iMOPS.GET(.nav("ACTIVE_USER")) ?? "SYSTEM"
+        let role: String = TheBrain.shared.get("^BRIGADE.\(userKey).ROLE") ?? "Brigade"
+        iMOPS.SET(.archive(archiveID, "ROLE"), role)
         
         showingMasterstrokeAlert = true
         
